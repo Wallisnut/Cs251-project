@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const axios = require("axios");
 
 const app = express();
 app.use(bodyParser.json());
@@ -20,33 +21,53 @@ db.connect((err) => {
   console.log("MySQL Connected HAHA YES!!!");
 });
 
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
+  try {
+    const apiResponse = await axios.get(
+      `https://restapi.tu.ac.th/api/v2/profile/std/info/?id=${password}`,
+    );
 
-  const query = "SELECT * FROM User WHERE Username = ?";
-  db.query(query, [username], async (err, results) => {
-    if (err) throw err;
-
-    if (results.length === 0) {
-      return res.status(400).json({ message: "User not found" });
+    if (apiResponse.data.status !== true) {
+      return res.status(400).json({ message: "Invalid student ID" });
     }
 
-    const user = results[0];
-    const isMatch = await bcrypt.compare(password, user.Password);
+    var studentInfo = apiResponse.data.data;
 
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+    const query = "SELECT * FROM User WHERE Username = ?";
+    db.query(query, [username], async (err, results) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ message: "Internal server error" });
+      }
 
-    const token = jwt.sign({ id: user.UserID, role: user.Role }, "secretkey", {
-      expiresIn: "1h",
+      if (results.length === 0) {
+        return res.status(400).json({ message: "User not found" });
+      }
+
+      const user = results[0];
+
+      const isMatch = await bcrypt.compare(password, user.Password);
+
+      if (!isMatch) {
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
+
+      const token = jwt.sign(
+        { id: user.UserID, role: user.Role },
+        process.env.TU_API,
+        { expiresIn: "1h" },
+      );
+
+      res.json({ token, role: user.Role });
     });
-
-    res.json({ token, role: user.Role });
-  });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} `);
 });
