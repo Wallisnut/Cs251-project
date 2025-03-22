@@ -21,7 +21,7 @@
 > require
 >
 > > ต้องการ Username, password
-> > Username และ password เป็น tรหัสเดียวกับ u reg
+> > Username และ password เป็น รหัสเดียวกับ tu reg
 
 ## end-point `/login/lecturer`
 
