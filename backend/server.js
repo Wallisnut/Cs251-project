@@ -23,13 +23,26 @@ db.connect((err) => {
 
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res
+      .status(400)
+      .json({ message: "Username and password are required" });
+  }
   try {
-    const apiResponse = await axios.get(
-      `https://restapi.tu.ac.th/api/v2/profile/std/info/?id=${password}`,
+    const apiResponse = await axios.post(
+      "https://restapi.tu.ac.th/api/v1/auth/Ad/verify2",
+      { UserName: username, PassWord: password },
+      {
+        headers: {
+          "Application-Key": process.env.TU_API,
+          "Content-Type": "application/json",
+        },
+      },
     );
 
     if (apiResponse.data.status !== true) {
-      return res.status(400).json({ message: "Invalid student ID" });
+      return res.status(400).json({ message: "Invalid student ID or token" });
     }
 
     var studentInfo = apiResponse.data.data;
@@ -55,18 +68,17 @@ app.post("/login", async (req, res) => {
 
       const token = jwt.sign(
         { id: user.UserID, role: user.Role },
-        process.env.TU_API,
+        process.env.TOKEN_JWT,
         { expiresIn: "1h" },
       );
 
       res.json({ token, role: user.Role });
     });
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("API Error:", error.response?.data || error.message);
+    res.status(500).json({ message: "Failed to verify student ID" });
   }
 });
-
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} `);
@@ -86,22 +98,41 @@ app.post("/add-student", (req, res) => {
 
   const hashedPassword = bcrypt.hashSync(password, 10);
 
-  const userQuery =
-    "INSERT INTO User (FirstName, LastName, Email, Department, Phone_No, Username, Password, Role) VALUES (?, ?, ?, ?, ?, ?, ?, 'student')";
-  db.query(
-    userQuery,
-    [firstName, lastName, email, department, phoneNo, username, hashedPassword],
-    (err, result) => {
-      if (err) throw err;
+  const checkEmailQuery = "SELECT * FROM User WHERE Email = ?";
+  db.query(checkEmailQuery, [email], (err, results) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
 
-      const studentQuery =
-        "INSERT INTO Student (StudentID, Faculty, Year) VALUES (?, ?, ?)";
-      db.query(studentQuery, [result.insertId, faculty, year], (err) => {
+    if (results.length > 0) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+    const userQuery =
+      "INSERT INTO User (FirstName, LastName, Email, Department, Phone_No, Username, Password, Role) VALUES (?, ?, ?, ?, ?, ?, ?, 'student')";
+    db.query(
+      userQuery,
+      [
+        firstName,
+        lastName,
+        email,
+        department,
+        phoneNo,
+        username,
+        hashedPassword,
+      ],
+      (err, result) => {
         if (err) throw err;
-        res.send("Student added successfully");
-      });
-    },
-  );
+
+        const studentQuery =
+          "INSERT INTO Student (StudentID, Faculty, Year) VALUES (?, ?, ?)";
+        db.query(studentQuery, [studentInfo.username, faculty, year], (err) => {
+          if (err) throw err;
+          res.send("Student added successfully");
+        });
+      },
+    );
+  });
 });
 
 app.delete("/delete-student/:id", (req, res) => {
