@@ -1,8 +1,8 @@
-CREATE DATABASE attendance_system;
+DROP DATABASE IF EXISTS CS251_project;
+CREATE DATABASE CS251_project;
+USE CS251_project;
 
-USE attendance_system;
-
--- entity
+-- Entities
 CREATE TABLE User (
     UserID INT AUTO_INCREMENT PRIMARY KEY,
     FirstName VARCHAR(50) NOT NULL,
@@ -12,29 +12,22 @@ CREATE TABLE User (
     Phone_No VARCHAR(15),
     Username VARCHAR(50) UNIQUE NOT NULL,
     Password VARCHAR(255) NOT NULL,
-    Role ENUM('student', 'lecturer', 'admin') NOT NULL 
+    Role ENUM('student', 'lecturer', 'admin') NOT NULL
 );
-
 
 CREATE TABLE Student (
-    StudentID INT PRIMARY KEY,
+    StudentID VARCHAR(10) PRIMARY KEY,
     Faculty VARCHAR(100),
     Year INT,
-    FOREIGN KEY (StudentID) REFERENCES User(UserID) ON DELETE CASCADE
+    UserID INT UNIQUE NOT NULL, -- Link to User table
+    FOREIGN KEY (UserID) REFERENCES User(UserID) ON DELETE CASCADE
 );
-
 
 CREATE TABLE Lecturer (
-    LecturerID INT PRIMARY KEY,
-    FOREIGN KEY (LecturerID) REFERENCES User(UserID) ON DELETE CASCADE
+    LecturerID VARCHAR(10) PRIMARY KEY,
+    UserID INT UNIQUE NOT NULL, -- Link to User table
+    FOREIGN KEY (UserID) REFERENCES User(UserID) ON DELETE CASCADE
 );
-
-
-CREATE TABLE Admin (
-    AdminID INT PRIMARY KEY,
-    FOREIGN KEY (AdminID) REFERENCES User(UserID) ON DELETE CASCADE
-);
-
 
 CREATE TABLE Course (
     CourseID INT AUTO_INCREMENT PRIMARY KEY,
@@ -43,28 +36,24 @@ CREATE TABLE Course (
     Course_Hour INT NOT NULL
 );
 
-
 CREATE TABLE Enrollment (
     EnrollmentID INT AUTO_INCREMENT PRIMARY KEY,
-    StudentID INT NOT NULL,
+    StudentID VARCHAR(10) NOT NULL,
     CourseID INT NOT NULL,
-    JoinCode VARCHAR(50),
     Date_Enroll DATE,
     FOREIGN KEY (StudentID) REFERENCES Student(StudentID) ON DELETE CASCADE,
     FOREIGN KEY (CourseID) REFERENCES Course(CourseID) ON DELETE CASCADE
 );
 
-
 CREATE TABLE Attendance (
     AttendanceID INT AUTO_INCREMENT PRIMARY KEY,
-    StudentID INT NOT NULL,
+    StudentID VARCHAR(10) NOT NULL,
     CourseID INT NOT NULL,
     Date_Attend DATE NOT NULL,
     Status ENUM('present', 'late', 'absent') NOT NULL,
     FOREIGN KEY (StudentID) REFERENCES Student(StudentID) ON DELETE CASCADE,
     FOREIGN KEY (CourseID) REFERENCES Course(CourseID) ON DELETE CASCADE
 );
-
 
 CREATE TABLE AttendanceReport (
     ReportID INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,21 +63,19 @@ CREATE TABLE AttendanceReport (
     FOREIGN KEY (CourseID) REFERENCES Course(CourseID) ON DELETE CASCADE
 );
 
-
 CREATE TABLE AttendanceConfirm (
     ConfirmID INT AUTO_INCREMENT PRIMARY KEY,
-    LecturerID INT NOT NULL,
+    LecturerID VARCHAR(10) NOT NULL,
     CourseID INT NOT NULL,
     ConfirmTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    Status ENUM('approve', 'reject') DEFAULT 'pending',
+    Status ENUM('approve', 'reject', 'pending') DEFAULT 'pending',
     FOREIGN KEY (LecturerID) REFERENCES Lecturer(LecturerID) ON DELETE CASCADE,
     FOREIGN KEY (CourseID) REFERENCES Course(CourseID) ON DELETE CASCADE
 );
 
-
 CREATE TABLE AbsentRequest (
     AbsentRequestID INT AUTO_INCREMENT PRIMARY KEY,
-    StudentID INT NOT NULL,
+    StudentID VARCHAR(10) NOT NULL,
     CourseID INT NOT NULL,
     NoteOfLeave TEXT,
     Reason TEXT NOT NULL,
@@ -97,17 +84,15 @@ CREATE TABLE AbsentRequest (
     FOREIGN KEY (CourseID) REFERENCES Course(CourseID) ON DELETE CASCADE
 );
 
-
 CREATE TABLE Correction (
     CorrectionID INT AUTO_INCREMENT PRIMARY KEY,
-    StudentID INT NOT NULL,
+    StudentID VARCHAR(10) NOT NULL,
     CourseID INT NOT NULL,
     Reason TEXT NOT NULL,
     Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     FOREIGN KEY (StudentID) REFERENCES Student(StudentID) ON DELETE CASCADE,
     FOREIGN KEY (CourseID) REFERENCES Course(CourseID) ON DELETE CASCADE
 );
-
 
 CREATE TABLE Notification (
     NotificationID INT AUTO_INCREMENT PRIMARY KEY,
@@ -118,9 +103,8 @@ CREATE TABLE Notification (
     FOREIGN KEY (UserID) REFERENCES User(UserID) ON DELETE CASCADE
 );
 
-
 CREATE TABLE Teach_IN (
-    LecturerID INT NOT NULL,
+    LecturerID VARCHAR(10) NOT NULL,
     CourseID INT NOT NULL,
     PRIMARY KEY (LecturerID, CourseID),
     FOREIGN KEY (LecturerID) REFERENCES Lecturer(LecturerID) ON DELETE CASCADE,
