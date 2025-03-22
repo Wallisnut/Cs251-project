@@ -366,6 +366,28 @@ app.post("/submit-leave-request", upload.single("file"), (req, res) => {
   );
 });
 
+app.get("/leave-requests", authenticate, (req, res) => {
+  if (req.user.role !== "lecturer" && req.user.role !== "admin") {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  const query = `
+        SELECT AbsentRequest.*, Student.StudentID, User.FirstName, User.LastName, Course.CourseName
+        FROM AbsentRequest
+        JOIN Student ON AbsentRequest.StudentID = Student.StudentID
+        JOIN User ON Student.UserID = User.UserID
+        JOIN Course ON AbsentRequest.CourseID = Course.CourseID
+    `;
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+
+    res.json(results);
+  });
+});
+
 app.post("/record-attendance", authenticate, (req, res) => {
   if (req.user.role !== "Lecturer") {
     return res.status(403).json({ message: "Access denied" });
