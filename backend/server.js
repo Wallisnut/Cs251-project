@@ -49,15 +49,12 @@ app.post("/register", async (req, res) => {
     role,
   } = req.body;
 
-  // Validate input
   if (!firstName || !lastName || !email || !username || !password || !role) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Insert into User table
   const query =
     "INSERT INTO User (FirstName, LastName, Email, Department, Phone_No, Username, Password, Role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
   db.query(
@@ -328,6 +325,45 @@ app.post("/join-course", authenticate, (req, res) => {
 
     res.status(201).json({ message: "Joined course successfully" });
   });
+});
+
+const multer = require("multer");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const upload = multer({ storage });
+
+app.post("/submit-leave-request", upload.single("file"), (req, res) => {
+  const { studentId, courseId, reason } = req.body;
+  const file = req.file;
+
+  if (!studentId || !courseId || !reason) {
+    return res
+      .status(400)
+      .json({ message: "Student ID, course ID, and reason are required" });
+  }
+
+  const query =
+    "INSERT INTO AbsentRequest (StudentID, CourseID, Reason, FilePath) VALUES (?, ?, ?, ?)";
+  db.query(
+    query,
+    [studentId, courseId, reason, file ? file.path : null],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ message: "Internal server error" });
+      }
+
+      res.status(201).json({ message: "Leave request submitted successfully" });
+    },
+  );
 });
 
 app.post("/record-attendance", authenticate, (req, res) => {
