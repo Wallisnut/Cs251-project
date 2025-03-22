@@ -37,6 +37,52 @@ const authenticate = (req, res, next) => {
   }
 };
 
+app.post("/register", async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    email,
+    department,
+    phoneNo,
+    username,
+    password,
+    role,
+  } = req.body;
+
+  // Validate input
+  if (!firstName || !lastName || !email || !username || !password || !role) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  // Hash password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Insert into User table
+  const query =
+    "INSERT INTO User (FirstName, LastName, Email, Department, Phone_No, Username, Password, Role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+  db.query(
+    query,
+    [
+      firstName,
+      lastName,
+      email,
+      department,
+      phoneNo,
+      username,
+      hashedPassword,
+      role,
+    ],
+    (err, result) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ message: "Internal server error" });
+      }
+
+      res.status(201).json({ message: "User registered successfully" });
+    },
+  );
+});
+
 app.post("/login/student", async (req, res) => {
   const { username, password } = req.body;
 
