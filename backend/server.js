@@ -64,7 +64,7 @@ const upload = multer({
       cb(new Error("Only PNG and JPEG files are allowed"));
     }
   },
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 app.post("/register", async (req, res) => {
@@ -411,12 +411,10 @@ app.post(
       (err) => {
         if (err) {
           console.error("Database error:", err);
-          return res
-            .status(500)
-            .json({
-              message: "Failed to submit leave request",
-              error: err.message,
-            });
+          return res.status(500).json({
+            message: "Failed to submit leave request",
+            error: err.message,
+          });
         }
 
         res
@@ -443,12 +441,10 @@ app.put(
     pool.query(query, [status, id], (err) => {
       if (err) {
         console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to update leave request",
-            error: err.message,
-          });
+        return res.status(500).json({
+          message: "Failed to update leave request",
+          error: err.message,
+        });
       }
 
       res.json({ message: "Leave request updated successfully" });
@@ -467,12 +463,10 @@ app.get("/leave-requests", authenticate(["lecturer", "admin"]), (req, res) => {
   pool.query(query, (err, results) => {
     if (err) {
       console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({
-          message: "Failed to fetch leave requests",
-          error: err.message,
-        });
+      return res.status(500).json({
+        message: "Failed to fetch leave requests",
+        error: err.message,
+      });
     }
 
     res.json(results);
@@ -518,12 +512,10 @@ app.get(
     pool.query(query, [courseId], (err, results) => {
       if (err) {
         console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to fetch attendance report",
-            error: err.message,
-          });
+        return res.status(500).json({
+          message: "Failed to fetch attendance report",
+          error: err.message,
+        });
       }
 
       res.json(results);
@@ -541,12 +533,10 @@ app.get(
     pool.query(query, [studentId], (err, results) => {
       if (err) {
         console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to fetch attendance history",
-            error: err.message,
-          });
+        return res.status(500).json({
+          message: "Failed to fetch attendance history",
+          error: err.message,
+        });
       }
 
       res.json(results);
