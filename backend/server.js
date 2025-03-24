@@ -77,6 +77,11 @@ app.post("/register", async (req, res) => {
     username,
     password,
     role,
+    faculty,
+    year,
+    studentId,
+    lecturerId,
+    adminId,
   } = req.body;
 
   if (!firstName || !lastName || !email || !username || !password || !role) {
@@ -85,10 +90,10 @@ app.post("/register", async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const query =
+  const userQuery =
     "INSERT INTO User (FirstName, LastName, Email, Department, Phone_No, Username, Password, Role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
   pool.query(
-    query,
+    userQuery,
     [
       firstName,
       lastName,
@@ -107,81 +112,81 @@ app.post("/register", async (req, res) => {
           .json({ message: "Failed to register user", error: err.message });
       }
 
-      res.status(201).json({ message: "User registered successfully" });
+      const userId = result.insertId;
+
+      if (role === "student") {
+        if (!faculty || !year || !studentId) {
+          return res.status(400).json({
+            message: "Faculty, year, and student ID are required for student",
+          });
+        }
+
+        const studentQuery =
+          "INSERT INTO Student (studentID, Faculty, Year, UserID) values(?,?,?,?)";
+        pool.query(studentQuery, [studentId, faculty, year, userId], (err) => {
+          if (err) {
+            console.error("Database error:", err);
+            return res.status(500).json({
+              message: "Failed to add student details",
+              error: err.message,
+            });
+          }
+          res.status(201).json({ message: "Student registered successfully" });
+        });
+      } else if (role == "lecturer") {
+        if (!lecturerId) {
+          return res
+            .status(400)
+            .json({ message: "Lecturer ID are required for lecturers" });
+        }
+
+        const lecturerQuery =
+          "INSERT INTO Lecturer (LecturerID,UserID) values(?,?)";
+        pool.query(lecturerQuery, [lecturerId, userId], (err) => {
+          if (err) {
+            console.error("Database error:", err);
+            return res.status(500).json({
+              message: "Failed to add lecturer details",
+              error: err.message,
+            });
+          }
+
+          res.status(201).json({ message: "Lecturer registered successfully" });
+        });
+      } else if (role === "admin") {
+        if (!adminId) {
+          return res
+            .status(400)
+            .json({ message: "Admin ID are required for admin" });
+        }
+
+        const adminQuery = "INSERT INTO Admin (AdminID,UserID) values(?,?)";
+        pool.query(adminQuery, [adminId, userId], (err) => {
+          if (err) {
+            console.error("Database error:", err);
+            return res.status(500).json({
+              message: "Failed to add admin details",
+              error: err.message,
+            });
+          }
+          res.status(201).json({ message: "Admin registered successfully" });
+        });
+      }
     },
   );
 });
 
-app.post("/login/student", async (req, res) => {
-  const { username, password } = req.body;
+app.post("/login", async (req, res) => {
+  const { username, password, role } = req.body;
 
-  if (!username || !password) {
+  if (!username || !password || !role) {
     return res
       .status(400)
-      .json({ message: "Username and password are required" });
+      .json({ message: "Username, password, and role are required" });
   }
 
-  try {
-    const apiResponse = await axios.post(
-      "https://restapi.tu.ac.th/api/v1/auth/Ad/verify2",
-      { UserName: username, PassWord: password },
-      {
-        headers: {
-          "Application-Key": process.env.TU_API,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    if (apiResponse.data.status !== true) {
-      return res.status(400).json({ message: "Invalid student ID or token" });
-    }
-
-    const query = "SELECT * FROM User WHERE Username = ?";
-    pool.query(query, [username], async (err, results) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ message: "Internal server error", error: err.message });
-      }
-
-      if (results.length === 0) {
-        return res.status(400).json({ message: "User not found" });
-      }
-
-      const user = results[0];
-      const isMatch = await bcrypt.compare(password, user.Password);
-
-      if (!isMatch) {
-        return res.status(400).json({ message: "Invalid credentials" });
-      }
-
-      const token = jwt.sign({ id: user.UserID, role: user.Role }, JWT_SECRET, {
-        expiresIn: "1h",
-      });
-
-      res.json({ token, role: user.Role });
-    });
-  } catch (error) {
-    console.error("API Error:", error.response?.data || error.message);
-    res
-      .status(500)
-      .json({ message: "Failed to verify student ID", error: error.message });
-  }
-});
-
-app.post("/login/lecturer", (req, res) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res
-      .status(400)
-      .json({ message: "Username and password are required" });
-  }
-
-  const query = "SELECT * FROM User WHERE Username = ? AND Role = 'lecturer'";
-  pool.query(query, [username], async (err, results) => {
+  const query = "SELECT * FROM User WHERE Username = ? AND Role = ?";
+  pool.query(query, [username, role], async (err, results) => {
     if (err) {
       console.error("Database error:", err);
       return res
@@ -207,44 +212,6 @@ app.post("/login/lecturer", (req, res) => {
     res.json({ token, role: user.Role });
   });
 });
-
-app.post("/login/admin", (req, res) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res
-      .status(400)
-      .json({ message: "Username and password are required" });
-  }
-
-  const query = "SELECT * FROM User WHERE Username = ? AND Role = 'admin'";
-  pool.query(query, [username], async (err, results) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ message: "Internal server error", error: err.message });
-    }
-
-    if (results.length === 0) {
-      return res.status(400).json({ message: "Admin not found" });
-    }
-
-    const admin = results[0];
-    const isMatch = await bcrypt.compare(password, admin.Password);
-
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    const token = jwt.sign({ id: admin.UserID, role: admin.Role }, JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    res.json({ token, role: admin.Role });
-  });
-});
-
 app.post("/add-student", authenticate(["admin"]), (req, res) => {
   const {
     firstName,
@@ -346,15 +313,15 @@ app.delete("/delete-student/:id", authenticate(["admin"]), (req, res) => {
 });
 
 app.post("/add-course", authenticate(["admin"]), (req, res) => {
-  const { courseName, courseCode, courseHour } = req.body;
+  const { courseName, courseId, courseHour } = req.body;
 
-  if (!courseName || !courseCode || !courseHour) {
+  if (!courseName || !courseId || !courseHour) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   const query =
-    "INSERT INTO Course (CourseName, CourseCode, Course_Hour) VALUES (?, ?, ?)";
-  pool.query(query, [courseName, courseCode, courseHour], (err) => {
+    "INSERT INTO Course (CourseName, CourseID, Course_Hour) VALUES (?, ?, ?)";
+  pool.query(query, [courseName, courseId, courseHour], (err) => {
     if (err) {
       console.error("Database error:", err);
       return res
@@ -505,7 +472,7 @@ app.get(
            SUM(a.Status = 'present') AS PresentClasses
     FROM Attendance a
     JOIN Student s ON a.StudentID = s.StudentID
-    JOIN User u ON s.StudentID = u.UserID
+    JOIN User u ON s.UserID = u.UserID
     WHERE a.CourseID = ?
     GROUP BY s.StudentID
   `;
