@@ -311,28 +311,78 @@ app.delete("/delete-student/:id", authenticate(["admin"]), (req, res) => {
     res.json({ message: "Student deleted successfully" });
   });
 });
+app.post(
+  "/add-course",
+  authenticate(["lecturer", "admin"]),
+  async (req, res) => {
+    const { courseName, courseId, courseHour } = req.body;
+    const lecturerId =
+      req.user.role === "lecturer" ? req.user.id : req.body.lecturerId;
 
-app.post("/add-course", authenticate(["admin"]), (req, res) => {
-  const { courseName, courseId, courseHour } = req.body;
-
-  if (!courseName || !courseId || !courseHour) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  const query =
-    "INSERT INTO Course (CourseName, CourseID, Course_Hour) VALUES (?, ?, ?)";
-  pool.query(query, [courseName, courseId, courseHour], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ message: "Failed to add course", error: err.message });
+    if (!courseName || !courseId || !courseHour) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    res.status(201).json({ message: "Course added successfully" });
-  });
-});
+    let connection;
+    try {
+      connection = await pool.promise().getConnection();
+      await connection.beginTransaction();
 
+      const [courseResult] = await connection.query(
+        "INSERT INTO Course (CourseID, CourseName, Course_Hour) VALUES (?, ?, ?)",
+        [courseId, courseName, courseHour],
+      );
+      console.log("Course insert result:", courseResult);
+
+      let actualLecturerId;
+      if (req.user.role === "admin" && lecturerId) {
+        const [lecturer] = await connection.query(
+          "SELECT LecturerID FROM Lecturer WHERE LecturerID = ?",
+          [lecturerId],
+        );
+        if (!lecturer.length) {
+          throw new Error("Lecturer not found");
+        }
+        actualLecturerId = lecturerId;
+      } else if (req.user.role === "lecturer") {
+        const [lecturer] = await connection.query(
+          "SELECT LecturerID FROM Lecturer WHERE UserID = ?",
+          [req.user.id],
+        );
+        if (!lecturer.length) {
+          throw new Error("Lecturer record not found");
+        }
+        actualLecturerId = lecturer[0].LecturerID;
+      }
+
+      const [teachInResult] = await connection.query(
+        "INSERT INTO Teach_IN (LecturerID, CourseID) VALUES (?, ?)",
+        [actualLecturerId, courseId],
+      );
+      console.log("Teach_IN insert result:", teachInResult);
+
+      await connection.commit();
+      res.status(201).json({
+        message: "Course added successfully",
+        lecturerAssigned: actualLecturerId,
+      });
+    } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      console.error("Error in /add-course:", error);
+      res.status(500).json({
+        message: "Failed to add course",
+        error: error.message,
+        stack: error.stack,
+      });
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  },
+);
 app.post("/join-course", authenticate(["student"]), (req, res) => {
   const { studentId, courseId } = req.body;
 
@@ -342,20 +392,56 @@ app.post("/join-course", authenticate(["student"]), (req, res) => {
       .json({ message: "Student ID and course ID are required" });
   }
 
-  const query =
-    "INSERT INTO Enrollment (StudentID, CourseID, Date_Enroll) VALUES (?, ?, CURDATE())";
-  pool.query(query, [studentId, courseId], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ message: "Failed to join course", error: err.message });
-    }
+  pool.query(
+    "SELECT 1 FROM Course WHERE CourseID = ?",
+    [courseId],
+    (err, results) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({
+          message: "Database error checking course",
+          error: err.message,
+        });
+      }
 
-    res.status(201).json({ message: "Joined course successfully" });
-  });
+      if (results.length === 0) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      pool.query(
+        "SELECT 1 FROM Student WHERE StudentID = ?",
+        [studentId],
+        (err, studentResults) => {
+          if (err) {
+            console.error("Database error:", err);
+            return res.status(500).json({
+              message: "Database error checking student",
+              error: err.message,
+            });
+          }
+
+          if (studentResults.length === 0) {
+            return res.status(404).json({ message: "Student not found" });
+          }
+
+          const query =
+            "INSERT INTO Enrollment (StudentID, CourseID, Date_Enroll) VALUES (?, ?, CURDATE())";
+          pool.query(query, [studentId, courseId], (err) => {
+            if (err) {
+              console.error("Database error:", err);
+              return res.status(500).json({
+                message: "Failed to join course",
+                error: err.message,
+              });
+            }
+
+            res.status(201).json({ message: "Joined course successfully" });
+          });
+        },
+      );
+    },
+  );
 });
-
 app.post(
   "/submit-leave-request",
   upload.single("file"),
@@ -468,14 +554,20 @@ app.get(
     const { courseId } = req.params;
 
     const query = `
-    SELECT s.StudentID, u.FirstName, u.LastName, COUNT(a.Status) AS TotalClasses, 
-           SUM(a.Status = 'present') AS PresentClasses
-    FROM Attendance a
-    JOIN Student s ON a.StudentID = s.StudentID
-    JOIN User u ON s.UserID = u.UserID
-    WHERE a.CourseID = ?
-    GROUP BY s.StudentID
-  `;
+      SELECT 
+        s.StudentID, 
+        u.FirstName AS StudentFirstName, 
+        u.LastName AS StudentLastName, 
+        COUNT(a.Status) AS TotalClasses, 
+        SUM(a.Status = 'present') AS PresentClasses,
+        SUM(a.Status = 'absent') AS AbsentClasses,
+        SUM(a.Status = 'late') AS LateClasses
+      FROM Attendance a
+      JOIN Student s ON a.StudentID = s.StudentID
+      JOIN User u ON s.UserID = u.UserID
+      WHERE a.CourseID = ?
+      GROUP BY s.StudentID;
+    `;
     pool.query(query, [courseId], (err, results) => {
       if (err) {
         console.error("Database error:", err);
@@ -535,7 +627,138 @@ app.put(
     });
   },
 );
+app.get(
+  "/lecturer-in-course/:courseId",
+  authenticate(["lecturer", "admin"]),
+  (req, res) => {
+    const { courseId } = req.params;
 
+    const query = `
+      SELECT 
+        l.LecturerID,
+        u.FirstName,
+        u.LastName,
+        u.Email,
+        u.Department
+      FROM Teach_IN t
+      JOIN Lecturer l ON t.LecturerID = l.LecturerID
+      JOIN User u ON l.UserID = u.UserID
+      WHERE t.CourseID = ?;
+    `;
+    console.log("Query:", query);
+    console.log("Course ID:", courseId);
+
+    pool.query(query, [courseId], (err, results) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({
+          message: "Failed to fetch attendance report",
+          error: err.message,
+        });
+      }
+
+      if (results.length === 0) {
+        return res
+          .status(404)
+          .json({ message: "No attendance records found for this course" });
+      }
+
+      res.json(results);
+    });
+  },
+);
+app.post("/send-notification", authenticate(["lecturer"]), (req, res) => {
+  const { studentId, message } = req.body;
+
+  if (!studentId || !message) {
+    return res
+      .status(400)
+      .json({ message: "Student ID and message are required" });
+  }
+
+  const getUserQuery = "SELECT UserID FROM Student WHERE StudentID = ?";
+  pool.query(getUserQuery, [studentId], (err, results) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({
+        message: "Failed to fetch student details",
+        error: err.message,
+      });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const userId = results[0].UserID;
+
+    const insertNotificationQuery = `
+        INSERT INTO Notification (UserID, Message) VALUES (?, ?)
+      `;
+    pool.query(insertNotificationQuery, [userId, message], (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({
+          message: "Failed to send notification",
+          error: err.message,
+        });
+      }
+
+      res.status(201).json({ message: "Notification sent successfully" });
+    });
+  });
+});
+app.get("/notifications", authenticate(["student"]), (req, res) => {
+  const userId = req.user.id;
+
+  const query = `
+      SELECT NotificationID, Message, Status, Notification_date
+      FROM Notification
+      WHERE UserID = ?
+      ORDER BY Notification_date DESC;
+    `;
+
+  pool.query(query, [userId], (err, results) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res
+        .status(500)
+        .json({ message: "Failed to fetch notifications", error: err.message });
+    }
+
+    res.json(results);
+  });
+});
+app.put(
+  "/notifications/:id/mark-read",
+  authenticate(["student"]),
+  (req, res) => {
+    const notificationId = req.params.id;
+    const userId = req.user.id;
+
+    const query = `
+      UPDATE Notification
+      SET Status = 'read'
+      WHERE NotificationID = ? AND UserID = ?;
+    `;
+
+    pool.query(query, [notificationId, userId], (err, results) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({
+          message: "Failed to mark notification as read",
+          error: err.message,
+        });
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+
+      res.json({ message: "Notification marked as read" });
+    });
+  },
+);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
