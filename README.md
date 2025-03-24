@@ -16,30 +16,29 @@
 
 # Back-end script
 
-## end-point `/login/student`
+## end-point `register`
 
 > require
 >
-> > ต้องการ Username, password
-> > Username และ password เป็น รหัสเดียวกับ tu reg
+> > firstName, lastName, email, department, phoneNo, username, role
+> > ถ้าเป็น student
+> > ต้องใส่ faculty, year, studentId เพิ่ม
+> > ถ้าเป็น lecturer
+> > lecturerId เพิ่ม
+> > ถ้าเป็น admin
+> > adminId เพิ่ม
 
-## end-point `/login/lecturer`
+## end-point `/login`
 
 > require
 >
-> > Username, password (ได้จาการลงทะเบียน)
-
-## end-point `/login/admin`
-
-> require
->
-> > Username, passwor (ได้จากการลงทะเบียน)
+> > ต้องการ Username, password, role
 
 ## end-point `/add-student`
 
 > require
 >
-> > firstName, lastName, email, department, phoneNo, username, password, faculty, your
+> > firstName, lastName, email, department, phoneNo, username, password, faculty, year, studentId
 
 ## end-point `/delete-student/:id`
 
@@ -52,12 +51,14 @@
 > require
 >
 > > courseName, courseCode, CourseHour
+> > ถ้าเป็น admin
+> > เพิ่ม lecturerId
 
 ## end-point `/join-course`
 
 > require
 >
-> > StudentID, CourseID, joinCode, Date_Enroll
+> > StudentID, CourseID
 
 ## end-point `/record-attendance`
 
@@ -70,6 +71,57 @@
 > require
 >
 > > courseId
+
+## end-point `/submit-leave-request`
+
+> require
+>
+> > studentId, courseId, reason
+> > เพิ่มเป็น png,jpeg ขนาดไม่เกิน 5mb
+
+## end-point `/approve-leave-request/:id`
+
+> require
+>
+> > AbsentRequestId(id), status(approve,reject)
+
+## end-point `/leave-requests`
+
+> no requirment
+
+## end-point `/attendance-history/:studentId`
+
+> require
+>
+> > studentId
+
+## end-point `/edit-attendance/:id`
+
+> require
+>
+> > AttendanceId(id),status(present,late,absent)
+
+## end-point `/lecturer-in-course/:courseId`
+
+> require
+>
+> > courseId
+
+## end-point `/send-notification`
+
+> require
+>
+> > studentId, message
+
+## end-point `/notifications`
+
+> no requirment
+
+## end-point `/notifications/:id/mark-read`
+
+> require
+>
+> > notificationId, userId
 
 ---
 
