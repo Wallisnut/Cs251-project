@@ -212,6 +212,7 @@ app.post("/login", async (req, res) => {
     res.json({ token, role: user.Role });
   });
 });
+
 app.post("/add-student", authenticate(["admin"]), (req, res) => {
   const {
     firstName,
@@ -311,15 +312,24 @@ app.delete("/delete-student/:id", authenticate(["admin"]), (req, res) => {
     res.json({ message: "Student deleted successfully" });
   });
 });
+
 app.post(
   "/add-course",
   authenticate(["lecturer", "admin"]),
   async (req, res) => {
-    const { courseName, courseId, courseHour } = req.body;
+    const { courseName, courseId, courseHour, startTime, endTime, courseDate } =
+      req.body;
     const lecturerId =
       req.user.role === "lecturer" ? req.user.id : req.body.lecturerId;
 
-    if (!courseName || !courseId || !courseHour) {
+    if (
+      !courseName ||
+      !courseId ||
+      !courseHour ||
+      !startTime ||
+      !endTime ||
+      !courseDate
+    ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -329,8 +339,8 @@ app.post(
       await connection.beginTransaction();
 
       const [courseResult] = await connection.query(
-        "INSERT INTO Course (CourseID, CourseName, Course_Hour) VALUES (?, ?, ?)",
-        [courseId, courseName, courseHour],
+        "INSERT INTO Course (CourseID, CourseName, Course_Hour, StartTime, EndTime, CourseDate) VALUES (? , ? , ? ,?, ?, ?)",
+        [courseId, courseName, courseHour, startTime, endTime, courseDate],
       );
       console.log("Course insert result:", courseResult);
 
@@ -383,6 +393,7 @@ app.post(
     }
   },
 );
+
 app.post("/join-course", authenticate(["student"]), (req, res) => {
   const { studentId, courseId } = req.body;
 
@@ -442,6 +453,97 @@ app.post("/join-course", authenticate(["student"]), (req, res) => {
     },
   );
 });
+
+app.get(
+  "/course_and_lecturer/:courseId",
+  authenticate(["student", "lecturer", "admin"]),
+  async (req, res) => {
+    const { courseId } = req.params;
+
+    try {
+      const [course] = await pool.promise().query(
+        `SELECT 
+          c.CourseID,
+          c.CourseName,
+          c.Course_Hour,
+          TIME_FORMAT(c.StartTime, '%H:%i') AS StartTime,
+          TIME_FORMAT(c.EndTime, '%H:%i') AS EndTime,
+          DATE_FORMAT(c.CourseDate, '%Y-%m-%d') AS CourseDate,
+          l.LecturerID,
+          u.FirstName AS LecturerFirstName,
+          u.LastName AS LecturerLastName
+         FROM Course c
+         LEFT JOIN Teach_IN t ON c.CourseID = t.CourseID
+         LEFT JOIN Lecturer l ON t.LecturerID = l.LecturerID
+         LEFT JOIN User u ON l.UserID = u.UserID
+         WHERE c.CourseID = ?`,
+        [courseId],
+      );
+
+      if (course.length === 0) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      const response = {
+        courseId: course[0].CourseID,
+        courseName: course[0].CourseName,
+        courseHour: course[0].Course_Hour,
+        schedule: {
+          date: course[0].CourseDate,
+          startTime: course[0].StartTime,
+          endTime: course[0].EndTime,
+        },
+        lecturers: course
+          .map((c) => ({
+            lecturerId: c.LecturerID,
+            firstName: c.LecturerFirstName,
+            lastName: c.LecturerLastName,
+          }))
+          .filter((l) => l.lecturerId), // Remove null entries if no lecturer
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Error fetching course:", error);
+      res.status(500).json({
+        message: "Failed to fetch course",
+        error: error.message,
+      });
+    }
+  },
+);
+
+app.get(
+  "/all-courses",
+  authenticate(["student", "lecturer", "admin"]),
+  async (req, res) => {
+    try {
+      const [courses] = await pool.promise().query(
+        `SELECT 
+          c.CourseID,
+          c.CourseName,
+          c.Course_Hour,
+          TIME_FORMAT(c.StartTime, '%H:%i') AS StartTime,
+          TIME_FORMAT(c.EndTime, '%H:%i') AS EndTime,
+          DATE_FORMAT(c.CourseDate, '%Y-%m-%d') AS CourseDate,
+          COUNT(e.StudentID) AS EnrolledStudents
+         FROM Course c
+        LEFT JOIN Enrollment e ON c.CourseID = e.CourseID
+         GROUP BY c.CourseID
+         ORDER BY c.CourseDate, c.StartTime`,
+      );
+
+      res.json(courses);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      res.status(500).json({
+        message: "Failed to fetch courses",
+        error: error.message,
+      });
+    }
+  },
+);
+
 app.post(
   "/submit-leave-request",
   upload.single("file"),
@@ -627,6 +729,7 @@ app.put(
     });
   },
 );
+
 app.get(
   "/lecturer-in-course/:courseId",
   authenticate(["lecturer", "admin"]),
@@ -667,6 +770,7 @@ app.get(
     });
   },
 );
+
 app.post("/send-notification", authenticate(["lecturer"]), (req, res) => {
   const { studentId, message } = req.body;
 
@@ -708,6 +812,7 @@ app.post("/send-notification", authenticate(["lecturer"]), (req, res) => {
     });
   });
 });
+
 app.get("/notifications", authenticate(["student"]), (req, res) => {
   const userId = req.user.id;
 
@@ -729,6 +834,7 @@ app.get("/notifications", authenticate(["student"]), (req, res) => {
     res.json(results);
   });
 });
+
 app.put(
   "/notifications/:id/mark-read",
   authenticate(["student"]),
@@ -760,6 +866,7 @@ app.put(
   },
 );
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
