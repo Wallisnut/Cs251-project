@@ -42,7 +42,7 @@ CREATE TABLE Course (
     StartTime TIME NOT NULL,
     CourseDate DATE NOT NULL,
     EndTime TIME NOT NULL
-);
+);		
 
 CREATE TABLE Enrollment (
     EnrollmentID INT AUTO_INCREMENT PRIMARY KEY,
