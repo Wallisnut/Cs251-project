@@ -1,0 +1,16 @@
+import { createRouter, createWebHistory } from 'vue-router';
+import LoginPage from '../page/LoginPage.vue';
+import SignupPage from '../page/SignupPage.vue';
+import HomePage from '../page/HomePage.vue';
+
+const routes = [
+  { path: '/', redirect: '/login' },
+  { path: '/login', component: LoginPage },
+  { path: '/signup', component: SignupPage },
+  { path: '/home', component: HomePage },
+];
+
+export default createRouter({
+  history: createWebHistory(),
+  routes,
+});
