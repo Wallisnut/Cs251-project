@@ -116,45 +116,36 @@ export default {
   },
   methods: {
     async handleSignup() {
-      const commonData = {
-        firstName: this.firstName,
-        lastName: this.lastName,
-        email: this.email,
-        department: this.department,
-        phoneNo: this.phoneNo,
-        username: this.username,
-        password: this.password,
-        role: this.role
-      };
+  try {
+    const payload = {
+      firstName: this.firstName,
+      lastName: this.lastName,
+      email: this.email,
+      department: this.department,
+      phoneNo: this.phoneNo,
+      username: this.username,
+      password: this.password,
+      role: this.role,
+    };
 
-      let roleData = {};
-      if (this.role === 'student') {
-        roleData = {
-          faculty: this.faculty,
-          year: this.year,
-          studentId: this.studentId
-        };
-      } else if (this.role === 'lecturer') {
-        roleData = {
-          lecturerId: this.lecturerId
-        };
-      } else if (this.role === 'admin') {
-        roleData = {
-          adminId: this.adminId
-        };
-      }
-
-      try {
-        await axios.post('http://localhost:5000/register', {
-          ...commonData,
-          ...roleData
-        });
-        alert("Registration successful! Please login.");
-        this.$router.push({ name: 'login' });
-      } catch (error) {
-        alert(error.response?.data?.message || "Registration failed");
-      }
+    if (this.role === "student") {
+      payload.studentId = this.studentId;
+      payload.faculty = this.faculty;
+      payload.year = this.year;
+    } else if (this.role === "lecturer") {
+      payload.lecturerId = this.lecturerId;
+    } else if (this.role === "admin") {
+      payload.adminId = this.adminId;
     }
+
+    const response = await axios.post("http://localhost:5000/register", payload);
+    alert(response.data.message);
+    this.$router.push("/login");
+  } catch (error) {
+    console.error(error);
+    alert("Signup failed: " + error.response.data.message);
+  }
+}
   }
 };
 </script>
