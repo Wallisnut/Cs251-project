@@ -27,24 +27,39 @@
 > > lecturerId เพิ่ม
 > > ถ้าเป็น admin
 > > adminId เพิ่ม
-
+> 
+> response
+> > "message": "Registration successful"
+> > userId
+> > 
 ## end-point `/login`
 
 > require
 >
 > > ต้องการ Username, password, role
+> 
+> response
+> > "message": "Login successful"
+> > "token": "jwt-token" (ใช้ระบุว่าเป็นใคร)
 
 ## end-point `/add-student`
 
 > require
 >
 > > firstName, lastName, email, department, phoneNo, username, password, faculty, year, studentId
+> 
+>  response
+> > "message": "Student added successfully"
+> > "studentId": "ST54321"
 
 ## end-point `/delete-student/:id`
 
 > require
 >
 > > StudentID
+>  
+> response
+> > "message": "Student deleted successfully"
 
 ## end-point `/add-course`
 
@@ -53,24 +68,44 @@
 > > courseName, courseCode, CourseHour
 > > ถ้าเป็น admin
 > > เพิ่ม lecturerId
+> 
+> response
+> > "message": "Course added successfully"
+> > "courseId": "C202"
 
 ## end-point `/join-course`
 
 > require
 >
 > > StudentID, CourseID
+> 
+> response
+> > "message": "Joined course successfully"
+
 
 ## end-point `/record-attendance`
 
 > require
 >
 > > StudentID, CourseID, Date_Attend, Status
+> 
+> response 
+>> "message": "Attendance recorded successfully"
 
 ## end-point `/attendance-report/:courseId`
 
 > require
 >
 > > courseId
+> 
+> response
+>> courseId": "C202"
+>> attendance": [
+    {
+      "studentId": "111111",
+      "date": "2025-05-12",
+      "status": "Present" 
+    }]
 
 ## end-point `/submit-leave-request`
 
@@ -78,50 +113,96 @@
 >
 > > studentId, courseId, reason
 > > เพิ่มเป็น png,jpeg ขนาดไม่เกิน 5mb
+> 
+> response 
+>> "message": "Leave request submitted successfully",
+>> "requestId": "2222222"
+
 
 ## end-point `/approve-leave-request/:id`
 
 > require
 >
 > > AbsentRequestId(id), status(approve,reject)
+> 
+> response
+>> "message": "Leave request approved"
+
 
 ## end-point `/leave-requests`
 
 > no requirment
+
+> response 
+>> "requests": [
+    {
+      "requestId": "2222222",
+      "studentId": "1111111",
+      "status": "Pending"
+    }]
 
 ## end-point `/attendance-history/:studentId`
 
 > require
 >
 > > studentId
+> 
+> response
+>> "attendance": [
+    {
+      "courseId": "Cs251",
+      "date": "2025-05-12",
+      "status": "Present"
+    }]
 
 ## end-point `/edit-attendance/:id`
 
 > require
 >
 > > AttendanceId(id),status(present,late,absent)
+> 
+> response
+>> "message": "Attendance updated"
 
 ## end-point `/lecturer-in-course/:courseId`
 
 > require
 >
 > > courseId
+> 
+> response
+>> "lecturerId": "L001",
+>> "lecturerName": "ja"
 
 ## end-point `/send-notification`
 
 > require
 >
 > > studentId, message
+> 
+> response
+>> "message": "Notification sent"
 
 ## end-point `/notifications`
 
 > no requirment
+>
+> response
+>> "notifications": [
+    {
+      "notificationId": "N001",
+      "message": "your leave request is reject",
+      "isRead": false
+    }]
 
 ## end-point `/notifications/:id/mark-read`
 
 > require
 >
 > > notificationId, userId
+> 
+> response
+>> "message": "Notification marked as read"
 
 ---
 
