@@ -27,6 +27,7 @@
 > > lecturerId เพิ่ม
 > > ถ้าเป็น admin
 > > adminId เพิ่ม
+> 
 > response
 > > "message": "Registration successful"
 > > userId
@@ -36,6 +37,7 @@
 > require
 >
 > > ต้องการ Username, password, role
+> 
 > response
 > > "message": "Login successful"
 > > "token": "jwt-token" (ใช้ระบุว่าเป็นใคร)
@@ -45,7 +47,8 @@
 > require
 >
 > > firstName, lastName, email, department, phoneNo, username, password, faculty, year, studentId
-> > response
+> 
+>  response
 > > "message": "Student added successfully"
 > > "studentId": "ST54321"
 
@@ -54,7 +57,8 @@
 > require
 >
 > > StudentID
-> > response
+>  
+> response
 > > "message": "Student deleted successfully"
 
 ## end-point `/add-course`
@@ -64,6 +68,7 @@
 > > courseName, courseCode, CourseHour
 > > ถ้าเป็น admin
 > > เพิ่ม lecturerId
+> 
 > response
 > > "message": "Course added successfully"
 > > "courseId": "C202"
@@ -73,6 +78,7 @@
 > require
 >
 > > StudentID, CourseID
+> 
 > response
 > > "message": "Joined course successfully"
 
@@ -82,6 +88,7 @@
 > require
 >
 > > StudentID, CourseID, Date_Attend, Status
+> 
 > response 
 >> "message": "Attendance recorded successfully"
 
@@ -90,6 +97,7 @@
 > require
 >
 > > courseId
+> 
 > response
 >> courseId": "C202"
 >> attendance": [
@@ -105,6 +113,7 @@
 >
 > > studentId, courseId, reason
 > > เพิ่มเป็น png,jpeg ขนาดไม่เกิน 5mb
+> 
 > response 
 >> "message": "Leave request submitted successfully",
 >> "requestId": "2222222"
@@ -115,6 +124,7 @@
 > require
 >
 > > AbsentRequestId(id), status(approve,reject)
+> 
 > response
 >> "message": "Leave request approved"
 
@@ -122,6 +132,7 @@
 ## end-point `/leave-requests`
 
 > no requirment
+
 > response 
 >> "requests": [
     {
@@ -135,6 +146,7 @@
 > require
 >
 > > studentId
+> 
 > response
 >> "attendance": [
     {
@@ -148,6 +160,7 @@
 > require
 >
 > > AttendanceId(id),status(present,late,absent)
+> 
 > response
 >> "message": "Attendance updated"
 
@@ -156,6 +169,7 @@
 > require
 >
 > > courseId
+> 
 > response
 >> "lecturerId": "L001",
 >> "lecturerName": "ja"
@@ -165,12 +179,14 @@
 > require
 >
 > > studentId, message
+> 
 > response
 >> "message": "Notification sent"
 
 ## end-point `/notifications`
 
 > no requirment
+>
 > response
 >> "notifications": [
     {
@@ -184,6 +200,7 @@
 > require
 >
 > > notificationId, userId
+> 
 > response
 >> "message": "Notification marked as read"
 
