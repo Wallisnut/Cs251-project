@@ -20,42 +20,23 @@
               <input v-model="lastName" type="text" class="form-control" placeholder="Last Name">
             </div>
           </div>
+
           <div class="mb-3"><input v-model="email" type="email" class="form-control" placeholder="Email"></div>
+
+          <div class="mb-3"><input v-model="department" type="text" class="form-control" placeholder="Department"></div>
+
           <div class="mb-3">
-            <select v-model="department" class="form-control">
-              <option disabled value="">Select Department</option>
-              <option value="Faculty of Law">Faculty of Law</option>
-              <option value="Thammasat Business School">Thammasat Business School</option>
-              <option value="Faculty of Political Science">Faculty of Political Science</option>
-              <option value="Faculty of Economics">Faculty of Economics</option>
-              <option value="Faculty of Social Administration">Faculty of Social Administration</option>
-              <option value="Faculty of Sociology and Anthropology">Faculty of Sociology and Anthropology</option>
-              <option value="Faculty of Liberal Arts">Faculty of Liberal Arts</option>
-              <option value="Faculty of Journalism and Mass Communication">Faculty of Journalism and Mass Communication</option>
-              <option value="Faculty of Science and Technology">Faculty of Science and Technology</option>
-              <option value="Faculty of Engineering">Faculty of Engineering</option>
-              <option value="Faculty of Architecture and Planning">Faculty of Architecture and Planning</option>
-              <option value="Faculty of Medicine">Faculty of Medicine</option>
-              <option value="Faculty of Allied Health Sciences">Faculty of Allied Health Sciences</option>
-              <option value="Faculty of Dentistry">Faculty of Dentistry</option>
-              <option value="Faculty of Nursing">Faculty of Nursing</option>
-              <option value="Faculty of Public Health">Faculty of Public Health</option>
-              <option value="College of Innovation">College of Innovation</option>
-              <option value="College of Interdisciplinary Studies">College of Interdisciplinary Studies</option>
-              <option value="School of Global Studies">School of Global Studies</option>
-              <option value="Sirindhorn International Institute of Technology">Sirindhorn International Institute of Technology</option>
-              <option value="Pridi Banomyong International College">Pridi Banomyong International College</option>
-              <option value="Chulabhorn International College of Medicine">Chulabhorn International College of Medicine</option>
-              <option value="Thai Khadi Research Institute">Thai Khadi Research Institute</option>
-              <option value="Institute of East Asian Studies">Institute of East Asian Studies</option>
-              <option value="Thammasat University Research and Consultancy Institute">Thammasat University Research and Consultancy Institute</option>
-              <option value="Language Institute">Language Institute</option>
-              <option value="Thammasat Institute of Area Studies">Thammasat Institute of Area Studies</option>
-            </select>
+            <input v-model="phoneNo" type="text" class="form-control" placeholder="Phone No." maxlength="10" pattern="0[0-9]{9}" title="เบอร์โทรต้องขึ้นต้นด้วย 0 และมีทั้งหมด 10 ตัว">
           </div>
-          <div class="mb-3"><input v-model="phoneNo" type="text" class="form-control" placeholder="Phone No."></div>
+
           <div class="mb-3"><input v-model="username" type="text" class="form-control" placeholder="Username"></div>
-          <div class="mb-3"><input v-model="password" type="password" class="form-control" placeholder="Password"></div>
+
+          <div class="mb-3 position-relative">
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" class="form-control" placeholder="Password">
+            <button type="button" @click="showPassword = !showPassword" class="btn btn-sm btn-secondary position-absolute end-0 top-50 translate-middle-y me-2">
+              {{ showPassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
 
           <div class="mb-3">
             <select v-model="role" class="form-control">
@@ -66,15 +47,20 @@
           </div>
 
           <div v-if="role === 'student'">
-            <div class="mb-3"><input v-model="faculty" type="text" class="form-control" placeholder="Faculty"></div>
+            <div class="mb-3">
+              <select v-model="faculty" class="form-control">
+                <option disabled value="">Select Faculty</option>
+                <option v-for="item in facultyList" :key="item" :value="item">{{ item }}</option>
+              </select>
+            </div>
             <div class="row mb-3">
-            <div class="col">
-              <input v-model="studentId" type="text" class="form-control" maxlength="10" placeholder="Student ID">
+              <div class="col">
+                <input v-model="studentId" type="text" class="form-control" maxlength="10" placeholder="Student ID">
+              </div>
+              <div class="col">
+                <input v-model="year" type="text" class="form-control" placeholder="Year">
+              </div>
             </div>
-            <div class="col">
-              <input v-model="year" type="text" class="form-control" placeholder="Year">
-            </div>
-          </div>
           </div>
 
           <div v-if="role === 'lecturer'">
@@ -111,41 +97,75 @@ export default {
       year: '',
       studentId: '',
       lecturerId: '',
-      adminId: ''
+      adminId: '',
+      showPassword: false,
+      facultyList: [
+        "Faculty of Law",
+        "Thammasat Business School",
+        "Faculty of Political Science",
+        "Faculty of Economics",
+        "Faculty of Social Administration",
+        "Faculty of Sociology and Anthropology",
+        "Faculty of Liberal Arts",
+        "Faculty of Journalism and Mass Communication",
+        "Faculty of Science and Technology",
+        "Faculty of Engineering",
+        "Faculty of Architecture and Planning",
+        "Faculty of Medicine",
+        "Faculty of Allied Health Sciences",
+        "Faculty of Dentistry",
+        "Faculty of Nursing",
+        "Faculty of Public Health",
+        "College of Innovation",
+        "College of Interdisciplinary Studies",
+        "School of Global Studies",
+        "Sirindhorn International Institute of Technology",
+        "Pridi Banomyong International College",
+        "Chulabhorn International College of Medicine",
+        "Thai Khadi Research Institute",
+        "Institute of East Asian Studies",
+        "Thammasat University Research and Consultancy Institute",
+        "Language Institute",
+        "Thammasat Institute of Area Studies"
+      ]
     };
   },
   methods: {
     async handleSignup() {
-  try {
-    const payload = {
-      firstName: this.firstName,
-      lastName: this.lastName,
-      email: this.email,
-      department: this.department,
-      phoneNo: this.phoneNo,
-      username: this.username,
-      password: this.password,
-      role: this.role,
-    };
+      try {
+        if (!/^0\d{9}$/.test(this.phoneNo)) {
+          alert("เบอร์โทรต้องขึ้นต้นด้วย 0 และมี 10 ตัว");
+          return;
+        }
 
-    if (this.role === "student") {
-      payload.studentId = this.studentId;
-      payload.faculty = this.faculty;
-      payload.year = this.year;
-    } else if (this.role === "lecturer") {
-      payload.lecturerId = this.lecturerId;
-    } else if (this.role === "admin") {
-      payload.adminId = this.adminId;
+        const response = await axios.post("/register", {
+          firstName: this.firstName,
+          lastName: this.lastName,
+          email: this.email,
+          department: this.department,
+          phoneNo: this.phoneNo,
+          username: this.username,
+          password: this.password,
+          role: this.role,
+          faculty: this.faculty,
+          year: this.year,
+          studentId: this.studentId,
+          lecturerId: this.lecturerId,
+          adminId: this.adminId,
+        });
+
+        if (response && response.data) {
+          alert("สมัครสมาชิกสำเร็จ!");
+          this.$router.push("/login");
+        } else {
+          alert("สมัครไม่สำเร็จ: ไม่มี response จาก server");
+        }
+
+      } catch (error) {
+        console.error("Signup error:", error);
+        alert("เกิดข้อผิดพลาดในการสมัคร: " + (error.response?.data?.message || error.message));
+      }
     }
-
-    const response = await axios.post("http://localhost:5000/register", payload);
-    alert(response.data.message);
-    this.$router.push("/login");
-  } catch (error) {
-    console.error(error);
-    alert("Signup failed: " + error.response.data.message);
-  }
-}
   }
 };
 </script>

@@ -54,7 +54,7 @@ export default {
       }
 
       try {
-        const response = await axios.post('http://localhost:5000/login', {
+        const response = await axios.post('/login', {
           username: this.username,
           password: this.password,
           role: this.role
