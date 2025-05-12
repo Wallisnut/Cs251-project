@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mysql:
@@ -11,7 +11,7 @@ services:
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "3306:3306"
+      - "3305:3306"
 
   backend:
     build: ./backend
@@ -28,6 +28,7 @@ services:
       TOKEN_JWT: devsecret
     volumes:
       - ./backend:/app
+      - /app/node_modules
     working_dir: /app
     command: node server.js
 
@@ -38,6 +39,7 @@ services:
       - "8080:8080"
     volumes:
       - ./frontend:/app
+      - /app/node_modules
     working_dir: /app
     command: npm run serve
     depends_on:
