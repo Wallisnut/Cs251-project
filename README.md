@@ -27,24 +27,35 @@
 > > lecturerId เพิ่ม
 > > ถ้าเป็น admin
 > > adminId เพิ่ม
-
+> response
+> > "message": "Registration successful"
+> > userId
+> > 
 ## end-point `/login`
 
 > require
 >
 > > ต้องการ Username, password, role
+> response
+> > "message": "Login successful"
+> > "token": "jwt-token" (ใช้ระบุว่าเป็นใคร)
 
 ## end-point `/add-student`
 
 > require
 >
 > > firstName, lastName, email, department, phoneNo, username, password, faculty, year, studentId
+> > response
+> > "message": "Student added successfully"
+> > "studentId": "ST54321"
 
 ## end-point `/delete-student/:id`
 
 > require
 >
 > > StudentID
+> > response
+> > "message": "Student deleted successfully"
 
 ## end-point `/add-course`
 
@@ -53,12 +64,18 @@
 > > courseName, courseCode, CourseHour
 > > ถ้าเป็น admin
 > > เพิ่ม lecturerId
+> response
+> > "message": "Course added successfully"
+> > "courseId": "C202"
 
 ## end-point `/join-course`
 
 > require
 >
 > > StudentID, CourseID
+> response
+> > "message": "Joined course successfully"
+
 
 ## end-point `/record-attendance`
 
