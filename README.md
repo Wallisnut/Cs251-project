@@ -82,6 +82,59 @@
 > response
 > > "message": "Joined course successfully"
 
+## end-point `/course_and_lecturer/:courseId`
+> require
+> > courseId (url param)
+> response
+> > {
+  "courseId": "C202",
+  "courseName": "Database Systems",
+  "courseHour": 3,
+  "schedule": {
+    "date": "2025-05-12",
+    "startTime": "09:00",
+    "endTime": "11:00"
+  },
+  "lecturers": [
+    {
+      "lecturerId": "L001",
+      "firstName": "John",
+      "lastName": "Doe"
+    },
+    {
+      "lecturerId": "L002",
+      "firstName": "Jane",
+      "lastName": "Smith"
+    }
+  ]
+}
+
+
+## end-point `/all-course`
+> response
+> >[
+  {
+    "CourseID": "C202",
+    "CourseName": "Database Systems",
+    "Course_Hour": 3,
+    "StartTime": "09:00",
+    "EndTime": "11:00",
+    "CourseDate": "2025-05-12",
+    "EnrolledStudents": 30
+  },
+  {
+    "CourseID": "C203",
+    "CourseName": "Web Development",
+    "Course_Hour": 4,
+    "StartTime": "13:00",
+    "EndTime": "16:00",
+    "CourseDate": "2025-05-13",
+    "EnrolledStudents": 25
+  }
+]
+
+
+
 
 ## end-point `/record-attendance`
 
