@@ -59,9 +59,15 @@ export default {
           password: this.password,
           role: this.role
         });
-        const { token, role } = response.data;
+
+        // 💥 Adjust this line if backend sends userId and/or studentId
+        const { token, role, userId, studentId } = response.data;
+
         localStorage.setItem('token', token);
         localStorage.setItem('role', role);
+        if (userId) localStorage.setItem('userId', userId);
+        if (studentId) localStorage.setItem('studentId', studentId);
+
         this.$router.push({ name: 'homepage' });
       } catch (error) {
         alert(error.response?.data?.message || "Login failed");
