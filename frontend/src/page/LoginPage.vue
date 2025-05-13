@@ -47,29 +47,31 @@ export default {
     };
   },
   methods: {
-    async handleLogin() {
-      if (!this.username || !this.password || !this.role) {
-        alert("Please fill in all required fields.");
-        return;
-      }
-
-      try {
-        const response = await axios.post('/login', {
-          username: this.username,
-          password: this.password,
-          role: this.role
-        });
-        const { token, role } = response.data;
-        localStorage.setItem('token', token);
-        localStorage.setItem('role', role);
-        this.$router.push({ name: 'homepage' });
-      } catch (error) {
-        alert(error.response?.data?.message || "Login failed");
-      }
-    },
-    togglePassword() {
-      this.showPassword = !this.showPassword;
+      async handleLogin() {
+    if (!this.username || !this.password || !this.role) {
+      alert("Please fill in all required fields.");
+      return;
     }
+
+    try {
+      const response = await axios.post('/login', {
+        username: this.username,
+        password: this.password,
+        role: this.role
+      });
+
+      const { message, token } = response.data;
+
+      alert(message || "Login successful");
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('username', this.username);
+
+      this.$router.push({ name: 'homepage' });
+    } catch (error) {
+      alert(error.response?.data?.message || "Login failed");
+    }
+  }
   }
 };
 </script>
