@@ -961,3 +961,82 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+app.put("/update-student/:id", authenticate(["admin"]), async (req, res) => {
+  const { id } = req.params;
+  const { FirstName, LastName, Email, Faculty, Year } = req.body;
+
+  try {
+    await pool.promise().query(
+      `UPDATE User u
+       JOIN Student s ON u.UserID = s.UserID
+       SET u.FirstName = ?, u.LastName = ?, u.Email = ?, s.Faculty = ?, s.Year = ?
+       WHERE u.UserID = ?`,
+      [FirstName, LastName, Email, Faculty, Year, id]
+    );
+    res.json({ message: "Student updated successfully" });
+  } catch (error) {
+    console.error("Update student error:", error);
+    res.status(500).json({ message: "Failed to update student", error });
+  }
+});
+
+app.put("/update-lecturer/:id", authenticate(["admin"]), async (req, res) => {
+  const { id } = req.params;
+  const { FirstName, LastName, Email, Department } = req.body;
+
+  try {
+    await pool.promise().query(
+      `UPDATE User u
+       JOIN Lecturer l ON u.UserID = l.UserID
+       SET u.FirstName = ?, u.LastName = ?, u.Email = ?, u.Department = ?
+       WHERE u.UserID = ?`,
+      [FirstName, LastName, Email, Department, id]
+    );
+    res.json({ message: "Lecturer updated successfully" });
+  } catch (error) {
+    console.error("Update lecturer error:", error);
+    res.status(500).json({ message: "Failed to update lecturer", error });
+  }
+});
+
+app.put("/update-course/:id", authenticate(["admin"]), async (req, res) => {
+  const { id } = req.params;
+  const { CourseName, Course_Hour, StartTime, EndTime, CourseDate } = req.body;
+
+  try {
+    await pool.promise().query(
+      `UPDATE Course
+       SET CourseName = ?, Course_Hour = ?, StartTime = ?, EndTime = ?, CourseDate = ?
+       WHERE CourseID = ?`,
+      [CourseName, Course_Hour, StartTime, EndTime, CourseDate, id]
+    );
+    res.json({ message: "Course updated successfully" });
+  } catch (error) {
+    console.error("Update course error:", error);
+    res.status(500).json({ message: "Failed to update course", error });
+  }
+});
+
+app.delete("/delete-course/:id", authenticate(["admin"]), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const connection = await pool.promise().getConnection();
+    await connection.beginTransaction();
+
+    await connection.query("DELETE FROM Teach_IN WHERE CourseID = ?", [id]);
+    await connection.query("DELETE FROM Enrollment WHERE CourseID = ?", [id]);
+    await connection.query("DELETE FROM Attendance WHERE CourseID = ?", [id]);
+    await connection.query("DELETE FROM AbsentRequest WHERE CourseID = ?", [id]);
+    await connection.query("DELETE FROM Correction WHERE CourseID = ?", [id]);
+
+    await connection.query("DELETE FROM Course WHERE CourseID = ?", [id]);
+
+    await connection.commit();
+    res.json({ message: "Course deleted successfully" });
+  } catch (err) {
+    console.error("Delete course error:", err);
+    res.status(500).json({ message: "Failed to delete course" });
+  }
+});
+
