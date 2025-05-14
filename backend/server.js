@@ -919,7 +919,6 @@ app.put(
     });
   },
 );
-<<<<<<< HEAD
 app.put("/update-student/:id", authenticate(["admin"]), async (req, res) => {
   const { id } = req.params;
   const { FirstName, LastName, Email, Faculty, Year } = req.body;
@@ -942,9 +941,25 @@ app.put("/update-student/:id", authenticate(["admin"]), async (req, res) => {
     res.status(500).json({ message: "Failed to update student", error });
   }
 });
-=======
+app.put("/update-lecturer/:id", authenticate(["admin"]), async (req, res) => {
+  const { id } = req.params;
+  const { FirstName, LastName, Email, Department } = req.body;
 
-app.get('/students', (req, res) => {
+  try {
+    await pool.promise().query(
+      `UPDATE User u
+       JOIN Lecturer l ON u.UserID = l.UserID
+       SET u.FirstName = ?, u.LastName = ?, u.Email = ?, u.Department = ?
+       WHERE u.UserID = ?`,
+      [FirstName, LastName, Email, Department, id],
+    );
+    res.json({ message: "Lecturer updated successfully" });
+  } catch (error) {
+    console.error("Update lecturer error:", error);
+    res.status(500).json({ message: "Failed to update lecturer", error });
+  }
+});
+app.get("/students", (req, res) => {
   const query = `
     SELECT 
       u.UserID, u.Username, u.FirstName, u.LastName, u.Email,
@@ -954,16 +969,14 @@ app.get('/students', (req, res) => {
   `;
   pool.query(query, (err, results) => {
     if (err) {
-      console.error('Error fetching students:', err);
-      return res.status(500).send('Error fetching students');
+      console.error("Error fetching students:", err);
+      return res.status(500).send("Error fetching students");
     }
     res.json(results);
   });
 });
 
-
-
-app.get('/lecturers', (req, res) => {
+app.get("/lecturers", (req, res) => {
   const query = `
     SELECT 
       u.UserID, u.Username, u.FirstName, u.LastName, u.Email, u.Department,
@@ -973,16 +986,16 @@ app.get('/lecturers', (req, res) => {
   `;
   pool.query(query, (err, results) => {
     if (err) {
-      console.error('Error fetching lecturers:', err);
-      return res.status(500).send('Error fetching lecturers');
+      console.error("Error fetching lecturers:", err);
+      return res.status(500).send("Error fetching lecturers");
     }
     res.json(results);
   });
 });
 
->>>>>>> c0c6fb7f45735390dbea144271ba3d843a41581e
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
