@@ -59,9 +59,10 @@ export default {
           password: this.password,
           role: this.role
         });
-        const { token, role } = response.data;
-        localStorage.setItem('token', token);
+
         localStorage.setItem('role', role);
+        localStorage.setItem('username', this.username);
+
         this.$router.push({ name: 'homepage' });
       } catch (error) {
         alert(error.response?.data?.message || "Login failed");
