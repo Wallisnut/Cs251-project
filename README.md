@@ -128,6 +128,17 @@
         "LecturerID": "6609611949"
     }
 ]
+
+## end-point `/delete-lecturer/:id`
+> require
+>
+> > id (lecturerId)
+
+> 
+> response
+> > "message": "Lecturer deleted successfully"
+
+
 ## end-point `/add-course`
 
 > require
