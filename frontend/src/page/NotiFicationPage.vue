@@ -64,7 +64,7 @@ export default {
   methods: {
     fetchNotifications() {
       axios
-        .get(`http://localhost:5000/notifications/${this.studentId}`)
+        .get(`/notifications/${this.studentId}`)
         .then((res) => {
           this.notifications = res.data;
         })

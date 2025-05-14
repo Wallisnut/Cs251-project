@@ -58,7 +58,7 @@
           <h3 class="modal-title">เพิ่มรายวิชา</h3>
           
           <div class="modal-inputs">
-            <input v-model="newCourse.courseId" placeholder="กรอกรหัสวิชา" />
+            <input v-model="newCourse.courseId" @input="newCourse.courseId = newCourse.courseId.toUpperCase()" placeholder="กรอกรหัสวิชา" />
             <input v-model="newCourse.courseName" placeholder="กรอกชื่อวิชา" />
           </div>
 
@@ -76,10 +76,8 @@
             <input type="time" v-model="slot.startTime" />
             <input type="time" v-model="slot.endTime" />
 
-            <!-- Add + button -->
             <button class="plus-mini" @click="addScheduleRow" v-if="index === newCourse.schedules.length - 1">+</button>
 
-            <!-- Add − button if there's more than 1 row -->
             <button
               class="minus-mini"
               @click="removeScheduleRow(index)"
@@ -215,45 +213,91 @@ export default {
     },
     async submitCourse() {
       console.log("Submitting:", this.newCourse);
+      const courseIdPattern = /^[A-Z]{2}\d{3}$/;
+      if (!courseIdPattern.test(this.newCourse.courseId)) {
+        alert("รหัสวิชาต้องมีรูปแบบเป็น 2 ตัวอักษรตามด้วยตัวเลข 3 หลัก (เช่น CS101)");
+        return;
+      }
+
       const token = localStorage.getItem("token");
       const headers = { Authorization: token };
 
       try {
-        for (const schedule of this.newCourse.schedules) {
-          const dayMap = { Sun:0,Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5,Sat:6 };
-          const today = new Date();
-          const currentDay = today.getDay();
-          const targetDay = dayMap[schedule.day];
-          const offset = (targetDay + 7 - currentDay) % 7;
-          const classDate = new Date(today);
-          classDate.setDate(today.getDate() + offset);
-          const formattedDate = classDate.toISOString().split("T")[0];
+      for (const schedule of this.newCourse.schedules) {
+        const dayMap = {Sun: 0,Mon: 1,Tue: 2,Wed: 3,Thu: 4,Fri: 5,Sat: 6};
 
-          const toMinutes = (time) => {
-            const [h, m] = time.split(":").map(Number);
-            return h * 60 + m;
-          };
-          const courseHour = (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
+        const today = new Date();
+        const currentDay = today.getDay();
+        const targetDay = dayMap[schedule.day];
+        const offset = (targetDay + 7 - currentDay) % 7;
+        const classDate = new Date(today);
+        classDate.setDate(today.getDate() + offset);
+        const formattedDate = classDate.toISOString().split("T")[0];
 
-          const payload = {
-            courseId: this.newCourse.courseId,
-            courseName: this.newCourse.courseName || "Untitled Course",
-            courseHour,
-            startTime: schedule.startTime,
-            endTime: schedule.endTime,
-            courseDate: formattedDate,
-            //lecturerId: this.lecturerId,
-          };
+        const toMinutes = (time) => {
+          const [h, m] = time.split(":").map(Number);
+          return h * 60 + m;
+        };
 
-          await axios.post("http://localhost:5000/add-course", payload, { headers });
+        const courseHour = (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
+
+        const payload = {
+          courseId: this.newCourse.courseId,
+          courseName: this.newCourse.courseName || "Untitled Course",
+          courseHour,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          courseDate: formattedDate,
+        };
+
+        await axios.post("/add-course", payload, { headers });
+
+        const start = new Date(`${payload.courseDate}T${payload.startTime}`);
+        const end = new Date(`${payload.courseDate}T${payload.endTime}`);
+        const now = new Date();
+        const isSameDay = (a, b) =>
+          a.getFullYear() === b.getFullYear() &&
+          a.getMonth() === b.getMonth() &&
+          a.getDate() === b.getDate();
+
+        const isToday = isSameDay(start, now);
+
+        let status = "";
+        if (isToday && now >= start && now <= end) status = "In Progress";
+        else if (isToday && now < start) status = "Upcoming";
+        else if (isToday && now > end) status = "Canceled";
+
+        const newCourse = {
+          courseId: payload.courseId,
+          courseName: payload.courseName,
+          schedule: {
+            date: payload.courseDate,
+            dayOfWeek: schedule.day,
+            startTime: payload.startTime,
+            endTime: payload.endTime,
+          },
+          status,
+          isToday,
+        };
+
+        this.allCourses.push(newCourse);
+        if (isToday && status) {
+          this.todayCourses.push(newCourse);
         }
-
-        alert("Course(s) added successfully!");
-        this.showModal = false;
-      } catch (err) {
-        console.error("Failed to add course:", err.response?.data || err.message);
-        alert("Error: " + (err.response?.data?.message || err.message));
       }
+
+    alert("Course added successfully!");
+    this.newCourse = {
+      courseId: "",
+      courseName: "",
+      schedules: [{ day: "", startTime: "", endTime: "" }],
+    };
+    this.showModal = false;
+
+    } catch (err) {
+      console.error("Failed to add course:", err.response?.data || err.message);
+      alert("Error: " + (err.response?.data?.message || err.message));
+    }
     },
 
     addScheduleRow() {
