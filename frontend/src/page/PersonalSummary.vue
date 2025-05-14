@@ -1,10 +1,12 @@
 <template>
   <div class="d-flex vh-100">
     <!-- Sidebar -->
-    <nav class="w-20 bg-warning text-white d-flex flex-column p-4">
-      <h2 class="mb-5">AttendEase</h2>
+    <nav style="width: 15%;" class="w-22 bg-white text-black d-flex flex-column p-4">
+      <h2 class="mb-5">Menu</h2>
       <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-2"><router-link to="/admin/home" class="nav-link text-white">Home</router-link></li>
+        <li class="nav-item mb-2"><router-link to="/admin/home" class="menu-item nav-link text-black">Home</router-link></li>
+        <li class="nav-item mb-2"><router-link to="/notification" class="menu-item nav-link text-black">Notification</router-link></li>
+        <li class="nav-item mb-2"><router-link to="/course_summary" class="menu-item active nav-link">Summary</router-link></li>
       </ul>
       <div class="mt-auto">
         <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>
@@ -12,7 +14,7 @@
     </nav>
 
     <!-- Main Content -->
-    <div class="flex-grow-1 bg-light p-5">
+    <div class="main flex-grow-1 p-5">
       <div class="mb-6">
         <h1 class="text-3xl font-bold">สรุปผลการเข้าเรียนรายวิชา</h1>
         <p class="text-gray-600 -mt-2">แสดงสถิติการเข้าเรียน ขาดเรียน และการลา ตามรายวิชา</p>
@@ -116,6 +118,28 @@ export default {
 <style scoped>
 :root {
   --progress-left: 70%; /* this will be updated inline by style binding */
+}
+.main {
+    background-color: #f5f5f5;
+    border: 6px solid white;
+    border-radius: 20px;
+}
+.menu-item {
+  padding: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  color: black;
+  display: block;
+  background: transparent;
+  transition: all 0.2s ease-in-out;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+.menu-item:hover,
+.active {
+  background: #ffc107;
+  color: black !important;
 }
 .attendance-bar {
   position: relative;
