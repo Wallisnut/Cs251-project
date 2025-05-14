@@ -56,7 +56,11 @@
       <div v-if="showModal" class="modal-overlay">
         <div class="modal-content">
           <h3 class="modal-title">เพิ่มรายวิชา</h3>
-          <input v-model="newCourse.courseId" placeholder="กรอกรหัสวิชา" />
+          
+          <div class="modal-inputs">
+            <input v-model="newCourse.courseId" placeholder="กรอกรหัสวิชา" />
+            <input v-model="newCourse.courseName" placeholder="กรอกชื่อวิชา" />
+          </div>
 
           <div class="modal-row" v-for="(slot, index) in newCourse.schedules" :key="index">
             <select v-model="slot.day">
@@ -225,9 +229,16 @@ export default {
           classDate.setDate(today.getDate() + offset);
           const formattedDate = classDate.toISOString().split("T")[0];
 
+          const toMinutes = (time) => {
+            const [h, m] = time.split(":").map(Number);
+            return h * 60 + m;
+          };
+          const courseHour = (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
+
           const payload = {
             courseId: this.newCourse.courseId,
-            courseName: this.newCourse.courseName,
+            courseName: this.newCourse.courseName || "Untitled Course",
+            courseHour,
             startTime: schedule.startTime,
             endTime: schedule.endTime,
             courseDate: formattedDate,
@@ -350,6 +361,19 @@ export default {
 .plus-icon:hover {
   box-shadow: 0 0 10px rgba(246, 181, 27, 0.8);
 }
+.modal-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* spacing between inputs */
+  margin-bottom: 1rem;
+}
+.modal-inputs input {
+  padding: 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 1rem;
+  font-size: 1rem;
+  width: 100%
+}
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -375,6 +399,7 @@ export default {
 }
 .modal-row {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
   margin: 1rem 0;
 }
@@ -382,7 +407,7 @@ export default {
 .modal-row select,
 input {
   flex: 1;
-  padding: 0.5rem;
+  padding: 0.7rem;
   border-radius: 1rem;
   border: 1px solid #ccc;
 }
