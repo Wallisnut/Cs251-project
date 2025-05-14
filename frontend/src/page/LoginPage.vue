@@ -60,16 +60,25 @@ export default {
           role: this.role
         });
 
-        localStorage.setItem('role', role);
-        localStorage.setItem('username', this.username);
+        const { message, token } = response.data;
+        alert(message || "Login successful");
 
-        this.$router.push({ name: 'homepage' });
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        const userRole = decoded.role;
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('username', this.username);
+        localStorage.setItem('role', userRole);
+
+        if (userRole === 'admin') {
+          this.$router.push('/admin/home');
+        } else {
+          this.$router.push('/home');
+        }
+
       } catch (error) {
         alert(error.response?.data?.message || "Login failed");
       }
-    },
-    togglePassword() {
-      this.showPassword = !this.showPassword;
     }
   }
 };
