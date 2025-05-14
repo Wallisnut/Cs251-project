@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const bodyParser = require("body-parser");
 const mysql = require("mysql2");
 const bcrypt = require("bcryptjs");
@@ -7,8 +8,10 @@ const axios = require("axios");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
-
 const app = express();
+app.use(cors());
+
+
 app.use(bodyParser.json());
 
 require("dotenv").config();
