@@ -6,8 +6,8 @@
       <router-link to="/home" class="menu-item" active-class="active">
         <img class="menu-icon" :src="homeIcon" alt="Home" /> Home
       </router-link>
-      <router-link to="/notification" class="menu-item active" active-class="active">
-        <img class="menu-icon" :src="notiIcon" alt="Notification" /> <span class="text-white">Notification</span>
+      <router-link to="/notification" class="menu-item" active-class="active">
+        <img class="menu-icon" :src="notiIcon" alt="Notification" /> Notification
       </router-link>
       <router-link to="/summary" class="menu-item" active-class="active">
         <img class="menu-icon" :src="summaryIcon" alt="Summary" /> Summary
@@ -20,17 +20,17 @@
     <!-- Content -->
     <div class="content flex-grow-1">
       <div class="container">
-        <h2 class="mb-4">การแจ้งเตือนทั้งหมด</h2>
+        <h2 class="mb-4 title">การแจ้งเตือนทั้งหมด</h2>
 
-        <div class="notification-item" v-for="(item, index) in notifications" :key="index" @click="markAsRead(item.id)">
+        <div class="notification-item" v-for="(item, index) in notifications" :key="item.NotificationID" @click="markAsRead(index)">
           <img class="icon" :src="userIcon" alt="user icon" />
           <div class="text">
-            <p class="message" :class="{ unread: item.unread, read: !item.unread }">
-              {{ item.message }}
+            <p class="message" :class="{ unread: item.Status === 'unread', read: item.Status === 'read' }">
+              {{ item.Message }}
             </p>
-            <p class="time">{{ item.time }}</p>
+            <p class="time">{{ formatDate(item.Notification_date) }}</p>
           </div>
-          <div class="dot" v-if="item.unread"></div>
+          <div class="dot" v-if="item.Status === 'unread'"></div>
         </div>
       </div>
     </div>
@@ -38,68 +38,74 @@
 </template>
 
 <script>
-import userIcon from '@/assets/user-icon.png';
-import homeIcon from '@/assets/home-icon.png';
-import notiIcon from '@/assets/noti-icon.png';
-import summaryIcon from '@/assets/summary-icon.png';
-import logoutIcon from '@/assets/logout-icon.png';
+import axios from "axios";
+import userIcon from "@/assets/user-icon.png";
+import homeIcon from "@/assets/home-icon.png";
+import notiIcon from "@/assets/noti-icon.png";
+import summaryIcon from "@/assets/summary-icon.png";
+import logoutIcon from "@/assets/logout-icon.png";
 
 export default {
-  name: 'NotiFicationPage',
+  name: "NotiFicationPage",
   data() {
     return {
+      studentId: "66001", // ใช้ StudentID ที่มีอยู่ในฐานข้อมูล
+      notifications: [],
       userIcon,
       homeIcon,
       notiIcon,
       summaryIcon,
       logoutIcon,
-      notifications: []
     };
   },
-  mounted() {
+  created() {
     this.fetchNotifications();
   },
   methods: {
     fetchNotifications() {
-      fetch("http://localhost:5000/notifications")
-        .then((res) => res.json())
-        .then((data) => {
-          this.notifications = data.notifications.map((n) => ({
-            id: n.notificationId,
-            message: n.message,
-            time: "เมื่อกี้",
-            unread: !n.isRead,
-          }));
+      axios
+        .get(`http://localhost:5000/notifications/${this.studentId}`)
+        .then((res) => {
+          this.notifications = res.data;
         })
-        .catch((err) => console.error("Fetch error:", err));
+        .catch((err) => {
+          console.error("Error fetching notifications:", err);
+        });
     },
-    markAsRead(id) {
-      const userId = "U001";
-      fetch(`http://localhost:5000/notifications/${id}/mark-read`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationId: id, userId }),
-      })
-        .then((res) => res.json())
-        .then(() => {
-          const noti = this.notifications.find((n) => n.id === id);
-          if (noti) noti.unread = false;
-        })
-        .catch((err) => console.error("Mark read error:", err));
+    markAsRead(index) {
+      if (this.notifications[index].Status === "unread") {
+        this.notifications[index].Status = "read";
+        // ถ้าต้องการอัปเดตฐานข้อมูลจริง ควรยิง PATCH ไปยัง backend ที่อัปเดต Status
+      }
+    },
+    formatDate(datetime) {
+      const d = new Date(datetime);
+      return d.toLocaleString("th-TH", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     },
     logout() {
-      console.log("Logged out");
-    }
-  }
+      alert("Logging out...");
+    },
+  },
 };
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
 
+* {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Sidebar Styles */
 .sidebar {
   width: 250px;
-  background: #ffffff;
+  background: #f8f9fa;
   height: 100vh;
   padding: 20px;
 }
@@ -130,31 +136,38 @@ export default {
   margin-right: 10px;
 }
 
-.text-white {
-  color: white;
-}
-
-/* Content Area */
+/* Content */
 .content {
-  font-family: 'Prompt', sans-serif;
   padding: 20px;
   background: #f5f5f5;
 }
 
+.title {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* Notification */
 .notification-item {
   display: flex;
   align-items: center;
-  background: #f5f5f5;
-  border: 1px solid rgb(192, 192, 193);
+  background: #fff;
+  border: 1px solid #ccc;
   border-radius: 8px;
-  padding: 12px 16px;
+  padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.notification-item:hover {
+  background-color: #f1f1f1;
 }
 
 .icon {
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   margin-right: 12px;
 }
 
@@ -164,24 +177,23 @@ export default {
 
 .message {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   color: #000;
 }
 
 .unread {
-  font-weight: 700;
-  color: rgb(0, 0, 0) !important;
+  font-weight: bold;
 }
 
 .read {
-  font-weight: 400;
-  color: #000;
+  font-weight: normal;
+  color: #888;
 }
 
 .time {
+  font-size: 12px;
+  color: #888;
   margin-top: 4px;
-  font-size: 14px;
-  color: #888787;
 }
 
 .dot {
@@ -190,14 +202,4 @@ export default {
   background-color: #3b82f6;
   border-radius: 50%;
 }
-
-.fw-bold {
-  margin-left: 10px;
-}
-
-.mb-4 {
-  font-size: 32px;
-  font-weight: bold;
-}
 </style>
-
