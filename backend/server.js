@@ -959,6 +959,23 @@ app.put("/update-lecturer/:id", authenticate(["admin"]), async (req, res) => {
     res.status(500).json({ message: "Failed to update lecturer", error });
   }
 });
+app.put("/update-course/:id", authenticate(["admin"]), async (req, res) => {
+  const { id } = req.params;
+  const { CourseName, Course_Hour, StartTime, EndTime, CourseDate } = req.body;
+
+  try {
+    await pool.promise().query(
+      `UPDATE Course
+       SET CourseName = ?, Course_Hour = ?, StartTime = ?, EndTime = ?, CourseDate = ?
+       WHERE CourseID = ?`,
+      [CourseName, Course_Hour, StartTime, EndTime, CourseDate, id],
+    );
+    res.json({ message: "Course updated successfully" });
+  } catch (error) {
+    console.error("Update course error:", error);
+    res.status(500).json({ message: "Failed to update course", error });
+  }
+});
 app.get("/students", (req, res) => {
   const query = `
     SELECT 
@@ -998,4 +1015,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
