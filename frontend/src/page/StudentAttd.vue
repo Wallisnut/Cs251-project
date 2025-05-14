@@ -27,7 +27,7 @@
           <tbody>
             <tr v-for="(row, index) in attendance" :key="index">
               <td>{{ row.date }}</td>
-              <input type="radio"/>
+              <td><input type="radio" /></td>  
               <td>{{ row.leave ? '(อัปไฟล์)' : '' }}</td>
               <td>{{ row.teacher }}</td>
             </tr>
@@ -39,19 +39,33 @@
 </template>
 
 <script>
-const StudentID = localStorage.getItem('studentID');
+
+import axios from 'axios';
 
 export default {
-
   data() {
     return {
-      attendance: [
-        { date: '2025-03-25', checked: true, leave: false, teacher: 'Dr. Smith' },
-        { date: '2025-03-26', checked: false, leave: true, teacher: 'Prof. Johnson' },
-      ],
+      studentId: null,
     };
   },
+  mounted() {
+    this.fetchUserInfo();
+  },
   methods: {
+    fetchUserInfo() {
+      axios.get('/user-info', {
+        headers: {
+          'user-token': localStorage.getItem('token')
+        }
+      })
+      .then(response => {
+        this.studentId = response.data.adminDetails.AdminID;
+      })
+      .catch(error => {
+        console.error('Error fetching user info:', error);
+      });
+    },
+  
     logout() {
       alert("Logging out...");
       // Implement actual logout logic here

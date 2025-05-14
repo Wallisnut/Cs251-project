@@ -9,7 +9,8 @@ const routes = [
   { path: '/login', component: LoginPage },
   { path: '/signup', component: SignupPage },
   { path: '/home', name: 'homepage', component: HomePage },
-  { path: '/admin/home', name: 'adminhome', component: AdminHome } 
+  { path: '/admin/home', name: 'adminhome', component: AdminHome },
+  { path: '/StudentAttd', name: 'StudentAttd', component: () => import('../page/StudentAttd.vue') }, 
 ];
 
 export default createRouter({
