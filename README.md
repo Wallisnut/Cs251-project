@@ -79,6 +79,66 @@
 > response
 > > "message": "Student deleted successfully"
 
+## end-point `/students`
+> require
+>
+> > admin or lecturer token
+>
+> response
+> >{
+    "students": [
+        {
+            "UserID": 4,
+            "Username": "bell",
+            "FirstName": "alisha",
+            "LastName": "ngamwongwattana",
+            "Email": "alisha.nga@dome.tu.ac.th",
+            "StudentID": "6609612319",
+            "Faculty": "Science",
+            "Year": 2
+        },
+        {
+            "UserID": 2,
+            "Username": "sunday",
+            "FirstName": "Nuttinee",
+            "LastName": "Buaphat",
+            "Email": "Nuttinee.bua@dome.tu.ac.th",
+            "StudentID": "6609681314",
+            "Faculty": "Computer Science",
+            "Year": 2
+        }
+    ]
+}
+
+## end-point `/lecturers`
+>require
+>
+>> admin token
+>
+> response
+>
+>>[
+    {
+        "UserID": 3,
+        "Username": "fern",
+        "FirstName": "nichakarn",
+        "LastName": "kulchittipiphat",
+        "Email": "nichakarn.kul@dome.tu.ac.th",
+        "Department": "Computer Science",
+        "LecturerID": "6609611949"
+    }
+]
+
+## end-point `/delete-lecturer/:id`
+> require
+>
+> > id (lecturerId)
+
+> 
+> response
+> > "message": "Lecturer deleted successfully"
+
+
 ## end-point `/add-course`
 
 > require
@@ -274,6 +334,47 @@
 > 
 > response
 >> "message": "Notification marked as read"
+## end-point `/update-student/:id`
+> require
+>
+> > id (index of user) 
+> 
+> response
+>> "message": "student updated successfully"
+
+## end-point `/update-lecturer/:id`
+> require
+>
+> > id (index of user) 
+> 
+> response
+>> "message": "Lecturer updated successfully"
+
+## end-point `/update-course/:id`
+> require
+>
+> > id (courseId)
+> >  {
+        "CourseName": "OS",
+        "Course_Hour": 15,
+        "StartTime": "15:00",
+        "EndTime": "18:00",
+        "CourseDate": "2026-03-24",
+        "EnrolledStudents": 0
+    }
+> 
+> response
+>> "message": "course updated successfully"
+
+## end-point `/delete-course/:id`
+> require
+>
+> > id (courseId)
+
+> 
+> response
+>> "message": "Course deleted successfully"
+
 
 ---
 
