@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mysql = require("mysql2");
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const multer = require("multer");
@@ -212,6 +212,60 @@ app.post("/login", async (req, res) => {
     res.json({ token, role: user.Role });
   });
 });
+app.get(
+  "/user-info",
+  authenticate(["student", "lecturer", "admin"]),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const role = req.user.role;
+
+      const [userRows] = await pool
+        .promise()
+        .query(
+          "SELECT FirstName, LastName, Email, Department, Phone_No, Username FROM User WHERE UserID = ?",
+          [userId],
+        );
+
+      if (userRows.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const userInfo = {
+        ...userRows[0],
+        role: role,
+      };
+
+      if (role === "student") {
+        const [studentRows] = await pool
+          .promise()
+          .query(
+            "SELECT StudentID, Faculty, Year FROM Student WHERE UserID = ?",
+            [userId],
+          );
+        userInfo.studentDetails = studentRows[0];
+      } else if (role === "lecturer") {
+        const [lecturerRows] = await pool
+          .promise()
+          .query("SELECT LecturerID FROM Lecturer WHERE UserID = ?", [userId]);
+        userInfo.lecturerDetails = lecturerRows[0];
+      } else if (role === "admin") {
+        const [adminRows] = await pool
+          .promise()
+          .query("SELECT AdminID FROM Admin WHERE UserID = ?", [userId]);
+        userInfo.adminDetails = adminRows[0];
+      }
+
+      res.json(userInfo);
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+      res.status(500).json({
+        message: "Failed to fetch user information",
+        error: error.message,
+      });
+    }
+  },
+);
 
 app.post("/add-student", authenticate(["admin"]), (req, res) => {
   const {
