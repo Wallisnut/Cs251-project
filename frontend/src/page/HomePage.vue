@@ -5,13 +5,13 @@
       <h2 class="mb-5">AttendEase</h2>
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item mb-2">
-          <router-link to="/lecturer/home" class="nav-link text-white">Home</router-link>
+          <router-link to="/home" class="nav-link text-white">Home</router-link>
         </li>
         <li class="nav-item mb-2">
-          <router-link to="/lecturer/notifications" class="nav-link text-white">Notification</router-link>
+          <router-link to="/notifications" class="nav-link text-white">Notification</router-link>
         </li>
         <li class="nav-item mb-2">
-          <router-link to="/lecturer/summary" class="nav-link text-white">Summary</router-link>
+          <router-link to="/summary" class="nav-link text-white">Summary</router-link>
         </li>
       </ul>
       <div class="mt-auto">
