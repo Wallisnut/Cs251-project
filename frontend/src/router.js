@@ -2,11 +2,13 @@ import{ createRouter, createWebHistory} from 'vue-router' ;
 import Login from './page/LoginPage.vue'
 import Homepage from './page/HomePage.vue'
 import Home from './page/NewHomePage.vue'
+import NotiFication from './page/NotiFicationPage.vue'
 
 const routes = [
     {path: '/login', component: Login},
     {path: '/homepage', component: Homepage},
-    {path: '/home', component: Home}
+    {path: '/home', component: Home},
+    {path: '/notification', component: NotiFication},
 ];
 
 
