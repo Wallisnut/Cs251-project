@@ -42,6 +42,23 @@
 > > "message": "Login successful"
 > > "token": "jwt-token" (ใช้ระบุว่าเป็นใคร)
 
+## end-point `/user-info`
+> require
+>
+> > header user-token
+> response
+> > {
+    "FirstName": "soracha",
+    "LastName": "bantherngchit",
+    "Email": "soracha.ban@dome.tu.ac.th",
+    "Department": "Computer Science",
+    "Phone_No": "1234567890",
+    "Username": "beau",
+    "role": "admin",
+    "adminDetails": {
+        "AdminID": "6609612228"
+    }
+}
 ## end-point `/add-student`
 
 > require
