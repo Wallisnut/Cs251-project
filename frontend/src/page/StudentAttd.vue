@@ -60,14 +60,20 @@ import axios from 'axios';
 export default {
   async mounted() {
     this.fetchUserInfo();
-    this.fetchAttendanceData(); 
+    //this.fetchAttendanceData(); 
     this.fetchCourseData(); 
   },
   data() {
     return {
+      courseId: this.$route.params.courseId,
       studentId: null,
       attendance: [], // Holds attendance data
       selectedFile: null,
+      checkedDate: null,
+      course: {
+        schedule: {},
+        lecturers: []
+      }
     };
   },
   methods: {
@@ -85,14 +91,14 @@ export default {
       });
     },
     
-    fetchAttendanceData() {
-      // Simulating fetching attendance data
-      this.attendance = [
-        { date: '2025-05-15', teacher: 'อาจารย์สมชาย', isChecked: false },
-        { date: '2025-05-16', teacher: 'อาจารย์สมศักดิ์', isChecked: false },
-        // Add more attendance data here
-      ];
-    },
+    // fetchAttendanceData() {
+    //   // Simulating fetching attendance data
+    //   this.attendance = [
+    //     { date: '2025-05-15', teacher: 'อาจารย์สมชาย', isChecked: false },
+    //     { date: '2025-05-16', teacher: 'อาจารย์สมศักดิ์', isChecked: false },
+    //     // Add more attendance data here
+    //   ];
+    // },
 
     recordAttendance(index) {
     const row = this.attendance[index];
@@ -117,30 +123,18 @@ export default {
       });
   },
 
-      fetchCourseData() {
-      axios.get(`/course_and_lecturer/${this.courseId}`)
-        .then(response => {
-          const courseData = response.data;
-          this.courseName = courseData.courseName;
-          this.schedule = courseData.schedule;
-          this.lecturers = courseData.lecturers;
+  async fetchCourseData() {
+    try {
+      const courseId = this.$route.params.courseId;
+      const response = await axios.get(`/course_and_lecturer/${courseId}`);
+      this.course = response.data;
+      this.generateAttendanceRows();
+    } catch (error) {
+      console.error("Failed to fetch course:", error);
+    }
+  },
 
-          // Prepare attendance rows based on the schedule
-          this.attendance = [{
-            date: this.schedule.date,
-            startTime: this.schedule.startTime,
-            endTime: this.schedule.endTime,
-            lecturer: this.lecturers.map(lecturer => `${lecturer.firstName} ${lecturer.lastName}`).join(', '),
-            isChecked: false,
-            selectedFile: null,
-          }];
-        })
-        .catch(error => {
-          console.error('Error fetching course data:', error);
-        });
-    },
-
-        isAttendanceAvailable(courseDate, startTime, endTime) {
+    isAttendanceAvailable(courseDate, startTime, endTime) {
       const currentDate = new Date();
       const courseDateTimeStart = new Date(`${courseDate}T${startTime}:00`);
       const courseDateTimeEnd = new Date(`${courseDate}T${endTime}:00`);
@@ -150,18 +144,45 @@ export default {
     }
   },
 
-    handleFileUpload(index, event) {
-      const file = event.target.files[0]; // Get the selected file
-      if (file && file.type === 'application/pdf') {
-        this.attendance[index].selectedFile = file; // Store file at the specific row index
-        console.log('File selected:', file.name);
-      } else {
-        alert('Please upload a valid PDF file');
-        this.attendance[index].selectedFile = null;
-      }
-    },
+  generateAttendanceRows() {
+  const startDate = new Date(this.course.schedule.date); // e.g., 2025-05-12
+  const today = new Date();
 
-    submitSingleLeave(index) {
+  const rows = [];
+
+  let loopDate = new Date(startDate);
+
+  while (loopDate <= today) {
+    const isToday = loopDate.toDateString() === today.toDateString();
+    const currentTime = new Date().toTimeString().slice(0, 5); // "HH:MM"
+    const canCheckIn = isToday &&
+      currentTime >= this.course.schedule.startTime &&
+      currentTime <= this.course.schedule.endTime;
+
+    rows.push({
+      date: loopDate.toISOString().slice(0, 10),
+      canCheckIn,
+      teacher: this.course.lecturers.map(l => `${l.firstName} ${l.lastName}`).join(', ')
+    });
+
+    loopDate.setDate(loopDate.getDate() + 7); // Weekly schedule
+  }
+
+  this.attendance = rows;
+  },
+
+  handleFileUpload(index, event) {
+    const file = event.target.files[0]; // Get the selected file
+    if (file && file.type === 'application/pdf') {
+      this.attendance[index].selectedFile = file; // Store file at the specific row index
+      console.log('File selected:', file.name);
+    } else {
+      alert('Please upload a valid PDF file');
+      this.attendance[index].selectedFile = null;
+    }
+  },
+
+  submitSingleLeave(index) {
     const row = this.attendance[index];
     const file = row.selectedFile;
 
@@ -187,12 +208,12 @@ export default {
       });
   },
 
-    changeFile(index) {
+  changeFile(index) {
     // Clear the previously selected file
     this.attendance[index].selectedFile = null;
   },
 
-    logout() {
+  logout() {
       alert("Logging out...");
       localStorage.removeItem('token'); 
       this.$router.push('/login');

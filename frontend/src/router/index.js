@@ -3,6 +3,7 @@ import LoginPage from '../page/LoginPage.vue';
 import SignupPage from '../page/SignupPage.vue';
 import HomePage from '../page/HomePage.vue';
 import AdminHome from '../page/AdminHome.vue';
+import StudentAttd from '../page/StudentAttd.vue';
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -10,7 +11,7 @@ const routes = [
   { path: '/signup', component: SignupPage },
   { path: '/home', name: 'homepage', component: HomePage },
   { path: '/admin/home', name: 'adminhome', component: AdminHome },
-  { path: '/stdattd', name: 'StudentAttd', component: () => import('../page/StudentAttd.vue') }, 
+  { path: '/stdattd/:courseId', name: 'StudentAttd',component: StudentAttd}
 ];
 
 export default createRouter({
