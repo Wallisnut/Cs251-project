@@ -1017,38 +1017,50 @@ app.delete(
     }
   },
 );
-app.get("/students", (req, res) => {
-  const query = `
-    SELECT 
-      u.UserID, u.Username, u.FirstName, u.LastName, u.Email,
-      s.StudentID, s.Faculty, s.Year
-    FROM Student s
-    JOIN User u ON s.UserID = u.UserID
-  `;
-  pool.query(query, (err, results) => {
-    if (err) {
-      console.error("Error fetching students:", err);
-      return res.status(500).send("Error fetching students");
+app.get("/students", authenticate(["admin", "lecturer"]), async (req, res) => {
+  try {
+    const [students] = await pool.promise().query(`
+      SELECT 
+        u.UserID, u.Username, u.FirstName, u.LastName, u.Email,
+        s.StudentID, s.Faculty, s.Year
+      FROM Student s
+      JOIN User u ON s.UserID = u.UserID
+    `);
+
+    if (students.length === 0) {
+      return res.status(404).json({ message: "No students found" });
     }
-    res.json(results);
-  });
+
+    res.json({ students });
+  } catch (err) {
+    console.error("Error fetching students:", err);
+    res
+      .status(500)
+      .json({ message: "Error fetching students", error: err.message });
+  }
 });
 
-app.get("/lecturers", (req, res) => {
-  const query = `
-    SELECT 
-      u.UserID, u.Username, u.FirstName, u.LastName, u.Email, u.Department,
-      l.LecturerID
-    FROM Lecturer l
-    JOIN User u ON l.UserID = u.UserID
-  `;
-  pool.query(query, (err, results) => {
-    if (err) {
-      console.error("Error fetching lecturers:", err);
-      return res.status(500).send("Error fetching lecturers");
+app.get("/lecturers", authenticate(["admin"]), async (req, res) => {
+  try {
+    const [lecturers] = await pool.promise().query(`
+      SELECT 
+        u.UserID, u.Username, u.FirstName, u.LastName, u.Email, u.Department,
+        l.LecturerID
+      FROM Lecturer l
+      JOIN User u ON l.UserID = u.UserID
+    `);
+
+    if (lecturers.length === 0) {
+      return res.status(404).json({ message: "No lecturers found" });
     }
-    res.json(results);
-  });
+
+    res.json({ lecturers });
+  } catch (err) {
+    console.error("Error fetching lecturers:", err);
+    res
+      .status(500)
+      .json({ message: "Error fetching lecturers", error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 5000;
