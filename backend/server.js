@@ -919,6 +919,7 @@ app.put(
     });
   },
 );
+<<<<<<< HEAD
 app.put("/update-student/:id", authenticate(["admin"]), async (req, res) => {
   const { id } = req.params;
   const { FirstName, LastName, Email, Faculty, Year } = req.body;
@@ -941,6 +942,45 @@ app.put("/update-student/:id", authenticate(["admin"]), async (req, res) => {
     res.status(500).json({ message: "Failed to update student", error });
   }
 });
+=======
+
+app.get('/students', (req, res) => {
+  const query = `
+    SELECT 
+      u.UserID, u.Username, u.FirstName, u.LastName, u.Email,
+      s.StudentID, s.Faculty, s.Year
+    FROM Student s
+    JOIN User u ON s.UserID = u.UserID
+  `;
+  pool.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching students:', err);
+      return res.status(500).send('Error fetching students');
+    }
+    res.json(results);
+  });
+});
+
+
+
+app.get('/lecturers', (req, res) => {
+  const query = `
+    SELECT 
+      u.UserID, u.Username, u.FirstName, u.LastName, u.Email, u.Department,
+      l.LecturerID
+    FROM Lecturer l
+    JOIN User u ON l.UserID = u.UserID
+  `;
+  pool.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching lecturers:', err);
+      return res.status(500).send('Error fetching lecturers');
+    }
+    res.json(results);
+  });
+});
+
+>>>>>>> c0c6fb7f45735390dbea144271ba3d843a41581e
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
