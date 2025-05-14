@@ -4,15 +4,9 @@
     <nav class="w-25 bg-warning text-white d-flex flex-column p-4">
       <h2 class="mb-5">AttendEase</h2>
       <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-2">
-          <router-link to="/lecturer/home" class="nav-link text-white">Home</router-link>
-        </li>
-        <li class="nav-item mb-2">
-          <router-link to="/lecturer/notifications" class="nav-link text-white">Notification</router-link>
-        </li>
-        <li class="nav-item mb-2">
-          <router-link to="/lecturer/summary" class="nav-link text-white">Summary</router-link>
-        </li>
+        <li class="nav-item mb-2"><router-link to="/lecturer/home" class="nav-link text-white">Home</router-link></li>
+        <li class="nav-item mb-2"><router-link to="/lecturer/notifications" class="nav-link text-white">Notification</router-link></li>
+        <li class="nav-item mb-2"><router-link to="/lecturer/summary" class="nav-link text-white">Summary</router-link></li>
       </ul>
       <div class="mt-auto">
         <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>
@@ -68,11 +62,10 @@ export default {
   name: "HomePage",
   data() {
     return {
-      studentId: "",
+      lecturerId: "",
+      taughtCourseIds: [],
       allCourses: [],
       todayCourses: [],
-      enrolledCourseIds: [],
-      availableCourses: [],
     };
   },
   async mounted() {
@@ -82,21 +75,22 @@ export default {
 
     try {
       const userInfo = await axios.get("/user-info", { headers });
-      this.studentId = userInfo.data.studentDetails.StudentID;
+      this.lecturerId = userInfo.data.lecturerDetails.LecturerID;
 
-      const enrolledRes = await axios.get(`/student-courses/${this.studentId}`, { headers });
-      const enrolled = enrolledRes.data;
-
-      this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
+      const teachInRes = await axios.get("/teach-in", { headers });
+      const teachMap = teachInRes.data.filter(
+        (t) => t.LecturerID === this.lecturerId
+      );
+      this.taughtCourseIds = teachMap.map((t) => t.CourseID);
 
       const allRes = await axios.get("/all-courses", { headers });
       const rawCourses = allRes.data;
 
-      const enrolledCourses = rawCourses.filter((c) =>
-        this.enrolledCourseIds.includes(c.CourseID)
+      const filteredCourses = rawCourses.filter((c) =>
+        this.taughtCourseIds.includes(c.CourseID)
       );
 
-      const withStatus = enrolledCourses.map((c) => {
+      const withStatus = filteredCourses.map((c) => {
         const start = new Date(`${c.CourseDate}T${c.StartTime}`);
         const end = new Date(`${c.CourseDate}T${c.EndTime}`);
         const isSameDay = (a, b) =>
@@ -124,9 +118,6 @@ export default {
 
       this.allCourses = withStatus;
       this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
-      this.availableCourses = rawCourses.filter(
-        (c) => !this.enrolledCourseIds.includes(c.CourseID)
-      );
     } catch (err) {
       console.error("Error loading data:", err);
     }
