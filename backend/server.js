@@ -919,6 +919,28 @@ app.put(
     });
   },
 );
+app.put("/update-student/:id", authenticate(["admin"]), async (req, res) => {
+  const { id } = req.params;
+  const { FirstName, LastName, Email, Faculty, Year } = req.body;
+
+  if (!id || isNaN(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+
+  try {
+    await pool.promise().query(
+      `UPDATE User u
+       JOIN Student s ON u.UserID = s.UserID
+       SET u.FirstName = ?, u.LastName = ?, u.Email = ?, s.Faculty = ?, s.Year = ?
+       WHERE u.UserID = ?`,
+      [FirstName, LastName, Email, Faculty, Year, id],
+    );
+    res.json({ message: "Student updated successfully" });
+  } catch (error) {
+    console.error("Update student error:", error);
+    res.status(500).json({ message: "Failed to update student", error });
+  }
+});
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
