@@ -50,7 +50,42 @@
         </div>
       </div>
 
-      <div class="plus-icon">+</div>
+      <div class="plus-icon" @click="showModal = true">+</div>
+      
+      <!-- Add Course Modal (with multiple schedules) -->
+      <div v-if="showModal" class="modal-overlay">
+        <div class="modal-content">
+          <h3 class="modal-title">เพิ่มรายวิชา</h3>
+          <input v-model="newCourse.courseId" placeholder="กรอกรหัสวิชา" />
+
+          <div class="modal-row" v-for="(slot, index) in newCourse.schedules" :key="index">
+            <select v-model="slot.day">
+              <option disabled value="">เลือกวัน</option>
+              <option>Mon</option>
+              <option>Tue</option>
+              <option>Wed</option>
+              <option>Thu</option>
+              <option>Fri</option>
+              <option>Sat</option>
+              <option>Sun</option>
+            </select>
+            <input type="time" v-model="slot.startTime" />
+            <input type="time" v-model="slot.endTime" />
+            <button class="plus-mini" @click="addScheduleRow" v-if="index === newCourse.schedules.length - 1">+</button>
+          </div>
+
+          <div class="modal-buttons">
+            <div v-if="exceedsCreditLimit" class="warning">
+              รวมเวลาเกิน 3 ชั่วโมง! กรุณาแก้ไข
+            </div>
+
+            <button :disabled="exceedsCreditLimit" @click="submitCourse">ตกลง</button>
+            <button @click="showModal = false">ยกเลิก</button>
+          </div>
+        </div>
+      </div>
+
+
     </div>
   </div>
 </template>
@@ -66,6 +101,16 @@ export default {
       taughtCourseIds: [],
       allCourses: [],
       todayCourses: [],
+      showModal: false,
+      newCourse: {
+        courseId: "",
+        day: "",
+        startTime: "",
+        endTime: "",
+        schedules: [
+          { day: "", startTime: "", endTime: "" }, // initial row
+        ],
+      },
     };
   },
   async mounted() {
@@ -122,6 +167,21 @@ export default {
       console.error("Error loading data:", err);
     }
   },
+  computed: {
+    totalCreditHours() {
+      return this.newCourse.schedules.reduce((sum, slot) => {
+        if (!slot.startTime || !slot.endTime) return sum;
+        const [startH, startM] = slot.startTime.split(":").map(Number);
+        const [endH, endM] = slot.endTime.split(":").map(Number);
+        const diff = (endH * 60 + endM - startH * 60 - startM) / 60;
+        return sum + (diff > 0 ? diff : 0);
+      }, 0);
+    },
+    exceedsCreditLimit() {
+      return this.totalCreditHours > 3;
+    }
+  },
+
   methods: {
     logout() {
       localStorage.removeItem("token");
@@ -139,6 +199,15 @@ export default {
       if (status === "Canceled") return "#FF2929";
       return "#000";
     },
+    submitCourse() {
+    console.log("Submitting:", this.newCourse);
+    // TODO: send to backend via axios POST /add-course
+    this.showModal = false;
+    },
+    addScheduleRow() {
+      this.newCourse.schedules.push({ day: "", startTime: "", endTime: "" });
+    },
+
   },
 };
 </script>
@@ -237,4 +306,99 @@ export default {
 .plus-icon:hover {
   box-shadow: 0 0 10px rgba(246, 181, 27, 0.8);
 }
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.modal-content {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 1rem;
+  width: 500px;
+  text-align: center;
+}
+.modal-title {
+  margin-bottom: 1rem;
+  color: #003366;
+}
+.modal-row {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.modal-row input,
+.modal-row select,
+input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid #ccc;
+}
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+.modal-buttons button {
+  flex: 1;
+  margin: 0 0.5rem;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 1.5rem;
+  cursor: pointer;
+}
+.modal-buttons button:first-child {
+  background-color: #003366;
+  color: white;
+}
+.modal-buttons button:last-child {
+  background-color: #ccc;
+}
+.plus-mini {
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  background-color: #f6b51b;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  border: none;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+.modal-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+.modal-row select,
+.modal-row input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid #ccc;
+}
+.warning {
+  color: #d8000c;
+  background-color: #ffd2d2;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  margin: 1rem 0;
+  font-weight: bold;
+}
+button[disabled] {
+  background-color: #ccc !important;
+  cursor: not-allowed;
+}
+
+
+
 </style>
