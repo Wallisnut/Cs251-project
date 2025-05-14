@@ -79,6 +79,55 @@
 > response
 > > "message": "Student deleted successfully"
 
+## end-point `/students`
+> require
+>
+> > admin or lecturer token
+>
+> response
+> >{
+    "students": [
+        {
+            "UserID": 4,
+            "Username": "bell",
+            "FirstName": "alisha",
+            "LastName": "ngamwongwattana",
+            "Email": "alisha.nga@dome.tu.ac.th",
+            "StudentID": "6609612319",
+            "Faculty": "Science",
+            "Year": 2
+        },
+        {
+            "UserID": 2,
+            "Username": "sunday",
+            "FirstName": "Nuttinee",
+            "LastName": "Buaphat",
+            "Email": "Nuttinee.bua@dome.tu.ac.th",
+            "StudentID": "6609681314",
+            "Faculty": "Computer Science",
+            "Year": 2
+        }
+    ]
+}
+
+## end-point `/lecturers`
+>require
+>
+>> admin token
+>
+> response
+>
+>>[
+    {
+        "UserID": 3,
+        "Username": "fern",
+        "FirstName": "nichakarn",
+        "LastName": "kulchittipiphat",
+        "Email": "nichakarn.kul@dome.tu.ac.th",
+        "Department": "Computer Science",
+        "LecturerID": "6609611949"
+    }
+]
 ## end-point `/add-course`
 
 > require
