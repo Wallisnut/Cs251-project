@@ -865,6 +865,43 @@ app.put(
     });
   },
 );
+
+app.get('/students', (req, res) => {
+  const query = `
+    SELECT 
+      u.UserID, u.Username, u.FirstName, u.LastName, u.Email,
+      s.StudentID, s.Faculty, s.Year
+    FROM Student s
+    JOIN User u ON s.UserID = u.UserID
+  `;
+  pool.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching students:', err);
+      return res.status(500).send('Error fetching students');
+    }
+    res.json(results);
+  });
+});
+
+
+
+app.get('/lecturers', (req, res) => {
+  const query = `
+    SELECT 
+      u.UserID, u.Username, u.FirstName, u.LastName, u.Email, u.Department,
+      l.LecturerID
+    FROM Lecturer l
+    JOIN User u ON l.UserID = u.UserID
+  `;
+  pool.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching lecturers:', err);
+      return res.status(500).send('Error fetching lecturers');
+    }
+    res.json(results);
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

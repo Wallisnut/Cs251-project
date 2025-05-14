@@ -48,30 +48,39 @@ export default {
   },
   methods: {
       async handleLogin() {
-    if (!this.username || !this.password || !this.role) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-
-    try {
-      const response = await axios.post('/login', {
-        username: this.username,
-        password: this.password,
-        role: this.role
-      });
-
-      const { message, token } = response.data;
-
-      alert(message || "Login successful");
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('username', this.username);
-
-      this.$router.push({ name: 'homepage' });
-    } catch (error) {
-      alert(error.response?.data?.message || "Login failed");
-    }
+  if (!this.username || !this.password || !this.role) {
+    alert("Please fill in all required fields.");
+    return;
   }
+
+  try {
+    const response = await axios.post('/login', {
+      username: this.username,
+      password: this.password,
+      role: this.role
+    });
+
+    const { message, token } = response.data;
+
+    alert(message || "Login successful");
+
+    const decoded = JSON.parse(atob(token.split('.')[1]));
+    const userRole = decoded.role;
+
+    localStorage.setItem('token', token);
+    localStorage.setItem('username', this.username);
+    localStorage.setItem('role', userRole);
+
+    if (userRole === 'admin') {
+      this.$router.push('/admin/home');
+    } else {
+      this.$router.push('/home');
+    }
+
+  } catch (error) {
+    alert(error.response?.data?.message || "Login failed");
+  }
+}
   }
 };
 </script>
