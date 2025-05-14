@@ -323,6 +323,47 @@
 > 
 > response
 >> "message": "Notification marked as read"
+## end-point `/update-student/:id`
+> require
+>
+> > id (index of user) 
+> 
+> response
+>> "message": "student updated successfully"
+
+## end-point `/update-lecturer/:id`
+> require
+>
+> > id (index of user) 
+> 
+> response
+>> "message": "Lecturer updated successfully"
+
+## end-point `/update-course/:id`
+> require
+>
+> > id (courseId)
+> >  {
+        "CourseName": "OS",
+        "Course_Hour": 15,
+        "StartTime": "15:00",
+        "EndTime": "18:00",
+        "CourseDate": "2026-03-24",
+        "EnrolledStudents": 0
+    }
+> 
+> response
+>> "message": "course updated successfully"
+
+## end-point `/delete-course/:id`
+> require
+>
+> > id (courseId)
+
+> 
+> response
+>> "message": "Course deleted successfully"
+
 
 ---
 
