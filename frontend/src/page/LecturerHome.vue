@@ -219,41 +219,62 @@ export default {
       const headers = { Authorization: token };
 
       try {
-        for (const schedule of this.newCourse.schedules) {
-          const dayMap = { Sun:0,Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5,Sat:6 };
-          const today = new Date();
-          const currentDay = today.getDay();
-          const targetDay = dayMap[schedule.day];
-          const offset = (targetDay + 7 - currentDay) % 7;
-          const classDate = new Date(today);
-          classDate.setDate(today.getDate() + offset);
-          const formattedDate = classDate.toISOString().split("T")[0];
+      for (const schedule of this.newCourse.schedules) {
+        const dayMap = {Sun: 0,Mon: 1,Tue: 2,Wed: 3,Thu: 4,Fri: 5,Sat: 6};
 
-          const toMinutes = (time) => {
-            const [h, m] = time.split(":").map(Number);
-            return h * 60 + m;
-          };
-          const courseHour = (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
+        const today = new Date();
+        const currentDay = today.getDay();
+        const targetDay = dayMap[schedule.day];
+        const offset = (targetDay + 7 - currentDay) % 7;
+        const classDate = new Date(today);
+        classDate.setDate(today.getDate() + offset);
+        const formattedDate = classDate.toISOString().split("T")[0];
 
-          const payload = {
-            courseId: this.newCourse.courseId,
-            courseName: this.newCourse.courseName || "Untitled Course",
-            courseHour,
-            startTime: schedule.startTime,
-            endTime: schedule.endTime,
-            courseDate: formattedDate,
-            //lecturerId: this.lecturerId,
-          };
+        const toMinutes = (time) => {
+          const [h, m] = time.split(":").map(Number);
+          return h * 60 + m;
+        };
 
-          await axios.post("http://localhost:5000/add-course", payload, { headers });
-        }
+        const courseHour =
+          (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
 
-        alert("Course(s) added successfully!");
-        this.showModal = false;
-      } catch (err) {
-        console.error("Failed to add course:", err.response?.data || err.message);
-        alert("Error: " + (err.response?.data?.message || err.message));
+        const payload = {
+          courseId: this.newCourse.courseId,
+          courseName: this.newCourse.courseName || "Untitled Course",
+          courseHour,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          courseDate: formattedDate,
+        };
+
+        await axios.post("http://localhost:5000/add-course", payload, { headers });
+
+        this.allCourses.push({
+          courseId: payload.courseId,
+          courseName: payload.courseName,
+          schedule: {
+            date: payload.courseDate,
+            dayOfWeek: schedule.day,
+            startTime: payload.startTime,
+            endTime: payload.endTime,
+          },
+          status: "",
+          isToday: false,
+        });
       }
+
+      alert("Course added successfully!");
+      this.newCourse = {
+        courseId: "",
+        courseName: "",
+        schedules: [{ day: "", startTime: "", endTime: "" }],
+      };
+      this.showModal = false;
+
+    } catch (err) {
+      console.error("Failed to add course:", err.response?.data || err.message);
+      alert("Error: " + (err.response?.data?.message || err.message));
+    }
     },
 
     addScheduleRow() {
