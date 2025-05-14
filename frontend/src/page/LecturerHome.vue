@@ -71,8 +71,18 @@
             </select>
             <input type="time" v-model="slot.startTime" />
             <input type="time" v-model="slot.endTime" />
+
+            <!-- Add + button -->
             <button class="plus-mini" @click="addScheduleRow" v-if="index === newCourse.schedules.length - 1">+</button>
+
+            <!-- Add − button if there's more than 1 row -->
+            <button
+              class="minus-mini"
+              @click="removeScheduleRow(index)"
+              v-if="newCourse.schedules.length > 1"
+            >−</button>
           </div>
+
 
           <div class="modal-buttons">
             <div v-if="exceedsCreditLimit" class="warning">
@@ -199,14 +209,48 @@ export default {
       if (status === "Canceled") return "#FF2929";
       return "#000";
     },
-    submitCourse() {
-    console.log("Submitting:", this.newCourse);
-    // TODO: send to backend via axios POST /add-course
-    this.showModal = false;
+    async submitCourse() {
+      console.log("Submitting:", this.newCourse);
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: token };
+
+      try {
+        for (const schedule of this.newCourse.schedules) {
+          const dayMap = { Sun:0,Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5,Sat:6 };
+          const today = new Date();
+          const currentDay = today.getDay();
+          const targetDay = dayMap[schedule.day];
+          const offset = (targetDay + 7 - currentDay) % 7;
+          const classDate = new Date(today);
+          classDate.setDate(today.getDate() + offset);
+          const formattedDate = classDate.toISOString().split("T")[0];
+
+          const payload = {
+            courseId: this.newCourse.courseId,
+            courseName: this.newCourse.courseName,
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+            courseDate: formattedDate,
+            //lecturerId: this.lecturerId,
+          };
+
+          await axios.post("http://localhost:5000/add-course", payload, { headers });
+        }
+
+        alert("Course(s) added successfully!");
+        this.showModal = false;
+      } catch (err) {
+        console.error("Failed to add course:", err.response?.data || err.message);
+        alert("Error: " + (err.response?.data?.message || err.message));
+      }
     },
+
     addScheduleRow() {
       this.newCourse.schedules.push({ day: "", startTime: "", endTime: "" });
     },
+    removeScheduleRow(index) {
+      this.newCourse.schedules.splice(index, 1);
+    }
 
   },
 };
@@ -373,6 +417,19 @@ input {
   margin-left: 0.5rem;
   cursor: pointer;
 }
+.minus-mini {
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  border: none;
+  margin-left: 0.3rem;
+  cursor: pointer;
+}
+
 .modal-row {
   display: flex;
   gap: 0.5rem;
@@ -398,7 +455,5 @@ button[disabled] {
   background-color: #ccc !important;
   cursor: not-allowed;
 }
-
-
 
 </style>
