@@ -921,7 +921,7 @@ app.put(
 );
 app.put(
   "/update-student/:id",
-  authenticate(["admin,lecturer"]),
+  authenticate(["admin", "lecturer"]),
   async (req, res) => {
     const { id } = req.params;
     const { FirstName, LastName, Email, Faculty, Year } = req.body;
@@ -947,7 +947,7 @@ app.put(
 );
 app.put(
   "/update-lecturer/:id",
-  authenticate(["admin,lecturer"]),
+  authenticate(["admin", "lecturer"]),
   async (req, res) => {
     const { id } = req.params;
     const { FirstName, LastName, Email, Department } = req.body;
@@ -969,7 +969,7 @@ app.put(
 );
 app.put(
   "/update-course/:id",
-  authenticate(["admin,lecturer"]),
+  authenticate(["admin", "lecturer"]),
   async (req, res) => {
     const { id } = req.params;
     const { CourseName, Course_Hour, StartTime, EndTime, CourseDate } =
@@ -992,7 +992,7 @@ app.put(
 
 app.delete(
   "/delete-course/:id",
-  authenticate(["admin,lecturer"]),
+  authenticate(["admin", "lecturer"]),
   async (req, res) => {
     const { id } = req.params;
     try {

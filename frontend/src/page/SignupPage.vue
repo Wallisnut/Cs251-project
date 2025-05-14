@@ -4,7 +4,7 @@
     <div class="w-50 bg-warning text-white d-flex flex-column justify-content-center align-items-center text-center p-4">
       <h1 class="text-start fw-bold position-absolute top-0 start-0 m-4">Attend<br>Ease</h1>
       <p class="fs-3 fw-bold text-start mt-5">"เช็คชื่อง่าย แจ้งลาสะดวก<br>จัดการทุกการเข้าเรียนในที่เดียว"</p>
-      <img :src="require('@/assets/login-icon.png')" alt="login-icon" class="w-50">
+      <img :src="require('../assets/login-icon.png')" alt="login-icon" class="w-50">
     </div>
 
     <!-- Sign-up Form -->
@@ -23,7 +23,21 @@
 
           <div class="mb-3"><input v-model="email" type="email" class="form-control" placeholder="Email"></div>
 
-          <div class="mb-3"><input v-model="department" type="text" class="form-control" placeholder="Department"></div>
+          <div class="mb-3">
+            <select v-model="department" class="form-control">
+              <option disabled value="">Select Department</option>
+              <option>MATHEMATICS AND STATISTICS</option>
+              <option>PHYSICS</option>
+              <option>CHEMISTRY</option>
+              <option>COMPUTER SCIENCE</option>
+              <option>AGRICULTURAL TECHNOLOGY</option>
+              <option>ENVIRONMENTAL SCIENCE</option>
+              <option>SUSTAINABLE DEVELOPMENT TECHNOLOGY</option>
+              <option>FOOD SCIENCE AND TECHNOLOGY</option>
+              <option>BIOTECHNOLOGY</option>
+              <option>MATERIALS AND TEXTILE TECHNOLOGY</option>
+            </select>
+          </div>
 
           <div class="mb-3">
             <input v-model="phoneNo" type="text" class="form-control" placeholder="Phone No." maxlength="10" pattern="0[0-9]{9}" title="เบอร์โทรต้องขึ้นต้นด้วย 0 และมีทั้งหมด 10 ตัว">
@@ -58,7 +72,13 @@
                 <input v-model="studentId" type="text" class="form-control" maxlength="10" placeholder="Student ID">
               </div>
               <div class="col">
-                <input v-model="year" type="text" class="form-control" placeholder="Year">
+                <input v-model="year"
+                       type="text"
+                       class="form-control"
+                       placeholder="Year"
+                       maxlength="1"
+                       pattern="[1-9]"
+                       title="กรอกปีการศึกษาเป็นเลขหลักเดียว (1-9)">
               </div>
             </div>
           </div>
@@ -100,33 +120,7 @@ export default {
       adminId: '',
       showPassword: false,
       facultyList: [
-        "Faculty of Law",
-        "Thammasat Business School",
-        "Faculty of Political Science",
-        "Faculty of Economics",
-        "Faculty of Social Administration",
-        "Faculty of Sociology and Anthropology",
-        "Faculty of Liberal Arts",
-        "Faculty of Journalism and Mass Communication",
-        "Faculty of Science and Technology",
-        "Faculty of Engineering",
-        "Faculty of Architecture and Planning",
-        "Faculty of Medicine",
-        "Faculty of Allied Health Sciences",
-        "Faculty of Dentistry",
-        "Faculty of Nursing",
-        "Faculty of Public Health",
-        "College of Innovation",
-        "College of Interdisciplinary Studies",
-        "School of Global Studies",
-        "Sirindhorn International Institute of Technology",
-        "Pridi Banomyong International College",
-        "Chulabhorn International College of Medicine",
-        "Thai Khadi Research Institute",
-        "Institute of East Asian Studies",
-        "Thammasat University Research and Consultancy Institute",
-        "Language Institute",
-        "Thammasat Institute of Area Studies"
+        "Faculty of Science and Technology"
       ]
     };
   },
