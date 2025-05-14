@@ -58,7 +58,7 @@
           <h3 class="modal-title">เพิ่มรายวิชา</h3>
           
           <div class="modal-inputs">
-            <input v-model="newCourse.courseId" placeholder="กรอกรหัสวิชา" />
+            <input v-model="newCourse.courseId" @input="newCourse.courseId = newCourse.courseId.toUpperCase()" placeholder="กรอกรหัสวิชา" />
             <input v-model="newCourse.courseName" placeholder="กรอกชื่อวิชา" />
           </div>
 
@@ -76,10 +76,8 @@
             <input type="time" v-model="slot.startTime" />
             <input type="time" v-model="slot.endTime" />
 
-            <!-- Add + button -->
             <button class="plus-mini" @click="addScheduleRow" v-if="index === newCourse.schedules.length - 1">+</button>
 
-            <!-- Add − button if there's more than 1 row -->
             <button
               class="minus-mini"
               @click="removeScheduleRow(index)"
@@ -215,6 +213,12 @@ export default {
     },
     async submitCourse() {
       console.log("Submitting:", this.newCourse);
+      const courseIdPattern = /^[A-Z]{2}\d{3}$/;
+      if (!courseIdPattern.test(this.newCourse.courseId)) {
+        alert("รหัสวิชาต้องมีรูปแบบเป็น 2 ตัวอักษรตามด้วยตัวเลข 3 หลัก (เช่น CS101)");
+        return;
+      }
+
       const token = localStorage.getItem("token");
       const headers = { Authorization: token };
 
@@ -235,8 +239,7 @@ export default {
           return h * 60 + m;
         };
 
-        const courseHour =
-          (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
+        const courseHour = (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
 
         const payload = {
           courseId: this.newCourse.courseId,
@@ -249,7 +252,22 @@ export default {
 
         await axios.post("http://localhost:5000/add-course", payload, { headers });
 
-        this.allCourses.push({
+        const start = new Date(`${payload.courseDate}T${payload.startTime}`);
+        const end = new Date(`${payload.courseDate}T${payload.endTime}`);
+        const now = new Date();
+        const isSameDay = (a, b) =>
+          a.getFullYear() === b.getFullYear() &&
+          a.getMonth() === b.getMonth() &&
+          a.getDate() === b.getDate();
+
+        const isToday = isSameDay(start, now);
+
+        let status = "";
+        if (isToday && now >= start && now <= end) status = "In Progress";
+        else if (isToday && now < start) status = "Upcoming";
+        else if (isToday && now > end) status = "Canceled";
+
+        const newCourse = {
           courseId: payload.courseId,
           courseName: payload.courseName,
           schedule: {
@@ -258,18 +276,23 @@ export default {
             startTime: payload.startTime,
             endTime: payload.endTime,
           },
-          status: "",
-          isToday: false,
-        });
+          status,
+          isToday,
+        };
+
+        this.allCourses.push(newCourse);
+        if (isToday && status) {
+          this.todayCourses.push(newCourse);
+        }
       }
 
-      alert("Course added successfully!");
-      this.newCourse = {
-        courseId: "",
-        courseName: "",
-        schedules: [{ day: "", startTime: "", endTime: "" }],
-      };
-      this.showModal = false;
+    alert("Course added successfully!");
+    this.newCourse = {
+      courseId: "",
+      courseName: "",
+      schedules: [{ day: "", startTime: "", endTime: "" }],
+    };
+    this.showModal = false;
 
     } catch (err) {
       console.error("Failed to add course:", err.response?.data || err.message);
