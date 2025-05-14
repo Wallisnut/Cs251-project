@@ -4,7 +4,7 @@
     <div class="w-50 bg-warning text-white d-flex flex-column justify-content-center align-items-center text-center p-4">
       <h1 class="text-start fw-bold position-absolute top-0 start-0 m-4">Attend<br>Ease</h1>
       <p class="fs-3 fw-bold text-start mt-5">"เช็คชื่อง่าย แจ้งลาสะดวก<br>จัดการทุกการเข้าเรียนในที่เดียว"</p>
-      <img :src="require('@/assets/login-icon.png')" alt="login-icon" class="w-50">
+      <img :src="require('../assets/login-icon.png')" alt="login-icon" class="w-50">
     </div>
 
     <!-- Sign-up Form -->

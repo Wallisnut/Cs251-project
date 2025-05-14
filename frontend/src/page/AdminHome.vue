@@ -1,12 +1,10 @@
 <template>
   <div class="d-flex vh-100">
     <!-- Sidebar -->
-    <nav class="w-25 bg-warning text-white d-flex flex-column p-4">
+    <nav class="w-20 bg-warning text-white d-flex flex-column p-4">
       <h2 class="mb-5">AttendEase</h2>
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item mb-2"><router-link to="/admin/home" class="nav-link text-white">Home</router-link></li>
-        <li class="nav-item mb-2"><router-link to="/admin/notifications" class="nav-link text-white">Notification</router-link></li>
-        <li class="nav-item mb-2"><router-link to="/admin/summary" class="nav-link text-white">Summary</router-link></li>
       </ul>
       <div class="mt-auto">
         <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>
@@ -17,11 +15,10 @@
     <div class="flex-grow-1 bg-light p-5">
       <h1 class="mb-4">Admin Dashboard</h1>
 
-      <!-- Advisors Section -->
+      <!-- Lecturers Section -->
       <section class="mb-5">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h3>Advisors</h3>
-          <button class="btn btn-sm btn-primary" @click="showLecturerForm()">+ Add Advisor</button>
+          <h3>Lecturers</h3>
         </div>
         <table class="table table-bordered bg-white">
           <thead>
@@ -35,8 +32,7 @@
               <td>{{ lec.Email }}</td>
               <td>{{ lec.Department }}</td>
               <td>
-                <button class="btn btn-sm btn-warning me-1" @click="() => showLecturerForm(lec)">Edit</button>
-                <button class="btn btn-sm btn-danger" @click="() => deleteLecturer(lec.UserID)">Delete</button>
+                <button class="btn btn-sm btn-danger" @click="deleteLecturer(lec.UserID)">Delete</button>
               </td>
             </tr>
           </tbody>
@@ -47,7 +43,6 @@
       <section class="mb-5">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h3>Students</h3>
-          <button class="btn btn-sm btn-primary" @click="showStudentForm()">+ Add Student</button>
         </div>
         <table class="table table-bordered bg-white">
           <thead>
@@ -62,8 +57,7 @@
               <td>{{ stu.Faculty }}</td>
               <td>{{ stu.Year }}</td>
               <td>
-                <button class="btn btn-sm btn-warning me-1" @click="() => showStudentForm(stu)">Edit</button>
-                <button class="btn btn-sm btn-danger" @click="() => deleteStudent(stu.UserID)">Delete</button>
+                <button class="btn btn-sm btn-danger" @click="deleteStudent(stu.UserID)">Delete</button>
               </td>
             </tr>
           </tbody>
@@ -74,7 +68,6 @@
       <section>
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h3>All Courses</h3>
-          <button class="btn btn-sm btn-primary" @click="showCourseForm()">+ Add Course</button>
         </div>
         <table class="table table-bordered bg-white">
           <thead>
@@ -87,8 +80,8 @@
               <td>{{ c.CourseDate }}</td>
               <td>{{ c.StartTime }} - {{ c.EndTime }}</td>
               <td>
-                <button class="btn btn-sm btn-warning me-1" @click="() => showCourseForm(c)">Edit</button>
-                <button class="btn btn-sm btn-danger" @click="() => deleteCourse(c.CourseID)">Delete</button>
+                <button class="btn btn-sm btn-warning me-1" @click="editCourse(c)">Edit</button>
+                <button class="btn btn-sm btn-danger" @click="deleteCourse(c.CourseID)">Delete</button>
               </td>
             </tr>
           </tbody>
@@ -108,34 +101,50 @@ export default {
     return {
       lecturers: [],
       students: [],
-      courses: []
-    }
+      courses: [],
+      role: localStorage.getItem('role')
+    };
   },
   methods: {
+    editLecturer(lec) {
+      alert(`Edit Lecturer: ${lec.FirstName} ${lec.LastName} (ID: ${lec.UserID})`);
+    },
+    editStudent(stu) {
+      alert(`Edit Student: ${stu.FirstName} ${stu.LastName} (ID: ${stu.UserID})`);
+    },
+    editCourse(course) {
+      alert(`Edit Course: ${course.CourseName} (ID: ${course.CourseID})`);
+    },
     fetchAll() {
       axios.get('/lecturers')
         .then(res => this.lecturers = res.data)
-        .catch(() => alert("Failed to fetch lecturers"))
+        .catch(() => alert("Failed to fetch lecturers"));
 
       axios.get('/students')
         .then(res => this.students = res.data)
-        .catch(() => alert("Failed to fetch students"))
+        .catch(() => alert("Failed to fetch students"));
 
       axios.get('/all-courses')
         .then(res => this.courses = res.data)
-        .catch(() => alert("Failed to fetch courses"))
+        .catch(() => alert("Failed to fetch courses"));
     },
-    showLecturerForm() {},
     deleteLecturer(id) {
-      axios.delete(`/remove-user/${id}`).then(this.fetchAll)
+      if (confirm("Are you sure you want to delete this lecturer?")) {
+        axios.delete(`/delete-student/${id}`).then(this.fetchAll)
+          .catch(() => alert("Failed to delete lecturer"));
+      }
     },
-    showStudentForm() {},
     deleteStudent(id) {
-      axios.delete(`/remove-user/${id}`).then(this.fetchAll)
+      if (confirm("Are you sure you want to delete this student?")) {
+        axios.delete(`/delete-student/${id}`).then(this.fetchAll)
+          .catch(() => alert("Failed to delete student"));
+      }
     },
-    showCourseForm() {},
     deleteCourse(id) {
-      axios.delete(`/delete-course/${id}`).then(this.fetchAll)
+      if (confirm("Are you sure you want to delete this course?")) {
+        axios.delete(`/delete-course/${id}`).then(this.fetchAll)
+          .catch(() => alert("Failed to delete course"));
+      }
     },
     logout() {
       localStorage.removeItem('token');
@@ -145,12 +154,23 @@ export default {
   mounted() {
     this.fetchAll();
   }
-}
+};
 </script>
 
 <style scoped>
-.nav-link.router-link-active {
-  font-weight: bold;
-  text-decoration: underline;
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+.modal-content {
+  width: 100%;
+  max-width: 500px;
 }
 </style>
