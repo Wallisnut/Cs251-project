@@ -111,6 +111,7 @@
       <section>
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h3>All Courses</h3>
+          <button class="btn btn-sm btn-primary" @click="showAddCourseModal = true">+ Add Course</button>
         </div>
         <table class="table table-bordered bg-white">
           <thead>
@@ -153,7 +154,38 @@
           </div>
         </div>
       </section>
-    </div>
+    
+      <!-- Add Course Modal -->
+      <div v-if="showAddCourseModal" class="modal d-block bg-dark bg-opacity-50">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Add New Course</h5>
+              <button type="button" class="btn-close" @click="showAddCourseModal = false"></button>
+            </div>
+            <div class="modal-body">
+              <input v-model="newCourse.courseName" type="text" class="form-control mb-2" placeholder="Course Name">
+              <input v-model="newCourse.courseCode" type="text" class="form-control mb-2" placeholder="Course Code">
+              <input v-model="newCourse.courseHour" type="number" step="0.1" class="form-control mb-2" placeholder="Course Hour">
+              <input v-model="newCourse.startTime" type="time" class="form-control mb-2">
+              <input v-model="newCourse.endTime" type="time" class="form-control mb-2">
+              <input v-model="newCourse.courseDate" type="date" class="form-control mb-2">
+              <select v-model="newCourse.lecturerId" class="form-control mb-2">
+                <option disabled value="">Select Lecturer</option>
+                <option v-for="lec in lecturers" :key="lec.LecturerID" :value="lec.LecturerID">
+                  {{ lec.FirstName }} {{ lec.LastName }} ({{ lec.LecturerID }})
+                </option>
+              </select>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" @click="showAddCourseModal = false">Cancel</button>
+              <button class="btn btn-success" @click="addCourse">Add Course</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+</div>
   </div>
 </template>
 
@@ -165,6 +197,16 @@ export default {
   name: 'AdminHome',
   data() {
     return {
+      showAddCourseModal: false,
+      newCourse: {
+        courseName: '',
+        courseCode: '',
+        courseHour: '',
+        startTime: '',
+        endTime: '',
+        courseDate: '',
+        lecturerId: ''
+      },
       editLecturerData: null,
       showEditLecturerModal: false,
       editStudentData: null,
@@ -177,6 +219,33 @@ export default {
     };
   },
   methods: {
+    addCourse() {
+      const { courseName, courseCode, courseHour, startTime, endTime, courseDate, lecturerId } = this.newCourse;
+      if (!courseName || !courseCode || !courseHour || !startTime || !endTime || !courseDate || !lecturerId) {
+        alert("Please fill in all required fields.");
+        return;
+      }
+      const payload = {
+        courseName,
+        courseId: courseCode,
+        courseHour,
+        startTime,
+        endTime,
+        courseDate,
+        lecturerId
+      };
+      axios.post('/add-course', payload)
+        .then(res => {
+          alert(res.data.message || "Course added successfully");
+          this.newCourse = { courseName: '', courseCode: '', courseHour: '', startTime: '', endTime: '', courseDate: '', lecturerId: '' };
+          this.showAddCourseModal = false;
+          this.fetchAll();
+        })
+        .catch(err => {
+          alert(err.response?.data?.message || "Failed to add course");
+        });
+    },
+
     startEditLecturer(lecturer) {
       this.editLecturerData = { ...lecturer };
       this.showEditLecturerModal = true;
@@ -241,10 +310,19 @@ export default {
       }
     },
     fetchAll() {
-      axios.get('/lecturers').then(res => this.lecturers = res.data.lecturers);
-      axios.get('/students').then(res => this.students = res.data.students || res.data);
-      axios.get('/all-courses').then(res => this.courses = res.data);
+      axios.get('/lecturers')
+        .then(res => this.lecturers = res.data.lecturers)
+        .catch(err => console.error('Fetch lecturers error:', err.response?.data || err.message));
+
+      axios.get('/students')
+        .then(res => this.students = res.data.students)
+        .catch(err => console.error('Fetch students error:', err.response?.data || err.message));
+
+      axios.get('/all-courses')
+        .then(res => this.courses = res.data.courses)
+        .catch(err => console.error('Fetch courses error:', err.response?.data || err.message));
     },
+
     logout() {
       localStorage.removeItem('token');
       this.$router.push('/login');

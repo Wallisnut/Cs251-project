@@ -1,5 +1,6 @@
 # Cs251-project
 
+<<<<<<< HEAD
 ## Back-end : MySQL
 
 ## Front–end : Vue.js , HTML , CSS , Javascript
@@ -381,3 +382,11 @@
 # port in use
 
 ## port 5000
+=======
+## Back-end : Java with springbootframework , MySQL 
+## Front–end : Vue.js , HTML , CSS , Javascript 
+## Environment : Docker , Docker-compose 
+## Version Control : Github 
+## Design : Figma 
+## Project Management : Trello , Discord 
+>>>>>>> origin/frontend-tompalm

@@ -72,6 +72,8 @@ export default {
 
         if (userRole === 'admin') {
           this.$router.push('/admin/home');
+        } else if (userRole === 'lecturer') {
+          this.$router.push('/lecturer/home');
         } else {
           this.$router.push('/home');
         }

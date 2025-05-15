@@ -7,9 +7,17 @@ const axios = require("axios");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const cors = require('cors');
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors({
+  origin: 'http://localhost:8080',  
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 require("dotenv").config();
 
@@ -31,8 +39,12 @@ const pool = mysql.createPool({
 const JWT_SECRET = process.env.TOKEN_JWT;
 
 const authenticate = (roles) => (req, res, next) => {
-  const token = req.header("Authorization");
-  if (!token) return res.status(401).send("Access denied");
+  const authHeader = req.header("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).send("Access denied");
+  }
+
+  const token = authHeader.replace("Bearer ", "");
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -42,6 +54,7 @@ const authenticate = (roles) => (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
+    console.error("JWT error:", err);
     res.status(400).send("Invalid token");
   }
 };
@@ -587,7 +600,7 @@ app.get(
          ORDER BY c.CourseDate, c.StartTime`,
       );
 
-      res.json(courses);
+      res.json({ courses });
     } catch (error) {
       console.error("Error fetching courses:", error);
       res.status(500).json({
