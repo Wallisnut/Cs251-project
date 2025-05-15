@@ -42,7 +42,7 @@ CREATE TABLE Course (
     StartTime TIME NOT NULL,
     CourseDate DATE NOT NULL,
     EndTime TIME NOT NULL,
-    JoinCode VARCHAR(10) UNIQUE
+    JoinCode VARCHAR(6) UNIQUE
 );		
 
 CREATE TABLE Enrollment (

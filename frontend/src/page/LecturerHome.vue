@@ -160,11 +160,11 @@ export default {
       const userInfo = await axios.get("/user-info", { headers });
       this.lecturerId = userInfo.data.lecturerDetails.LecturerID;
 
-      const teachInRes = await axios.get("/teach-in", { headers });
-      const teachMap = teachInRes.data.filter(
-        (t) => t.LecturerID === this.lecturerId
-      );
-      this.taughtCourseIds = teachMap.map((t) => t.CourseID);
+      // const teachInRes = await axios.get("/teach-in", { headers });
+      // const teachMap = teachInRes.data.filter(
+      //   (t) => t.LecturerID === this.lecturerId
+      // );
+      // this.taughtCourseIds = teachMap.map((t) => t.CourseID);
 
       const allRes = await axios.get("/all-courses", { headers });
       const rawCourses = allRes.data;
@@ -304,8 +304,11 @@ export default {
         };
 
         const response = await axios.post("http://localhost:5000/add-course", payload, { headers });
-        const joinCode = response.data.joinCode;
-        alert(`Course added successfully! Join Code: ${joinCode}`);
+        console.log("Response:", response.data);
+        const joinCodes = [];
+        joinCodes.push(response.data.joinCode);
+        alert(`Courses added successfully!\nJoin Codes:\n${joinCodes.join('\n')}`);
+
         const start = new Date(`${payload.courseDate}T${payload.startTime}`);
         const end = new Date(`${payload.courseDate}T${payload.endTime}`);
         const now = new Date();
@@ -340,8 +343,6 @@ export default {
         }
       }
 
-    await this.fetchCourses();   
-    alert("Course added successfully!");
     this.newCourse = {
       courseId: "",
       courseName: "",
