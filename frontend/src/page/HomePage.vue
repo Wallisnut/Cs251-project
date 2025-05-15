@@ -1,30 +1,15 @@
 <template>
   <div class="home">
     <!-- Sidebar -->
-    <nav class="w-25 bg-warning text-white d-flex flex-column p-4">
-      <h2 class="mb-5">AttendEase</h2>
-      <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-2">
-          <router-link to="/home" class="nav-link text-white">Home</router-link>
-        </li>
-        <li class="nav-item mb-2">
-          <router-link to="/notification" class="nav-link text-white"
-            >Notification</router-link
-          >
-        </li>
-        <li class="nav-item mb-2">
-          <router-link to="/personal_summary" class="nav-link text-white"
-            >Summary</router-link
-          >
-        </li>
-      </ul>
-      
-      <div class="mt-auto">
-        <button @click="logout" class="btn btn-light text-warning w-100">
-          Log Out
-        </button>
-      </div>
-    </nav>
+    <div class="sidebar d-flex flex-column">
+      <h2 class="fw-bold">Menu</h2>
+      <router-link to="/home" class="menu-item active">🏠 Home</router-link>
+      <router-link to="/notification" class="menu-item"
+        >🔔 Notification</router-link
+      >
+      <router-link to="/summary" class="menu-item">📊 Summary</router-link>
+      <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
+    </div>
 
     <!-- Main Content -->
     <div class="main-container">
@@ -36,6 +21,7 @@
             v-for="course in todayCourses"
             :key="course.courseId"
             :class="getCourseCardClass(course.status)"
+            @click="goToAttendance(course.courseId)"
           >
             <div class="status">
               <span
@@ -70,24 +56,23 @@
         </div>
       </div>
 
-      <div class="plus-icon" @click="openJoinModal">+</div>
-
-      <!-- Join Course Modal -->
-      <div
-        v-if="showJoinModal"
-        class="modal-overlay"
-        @click.self="closeJoinModal"
-      >
+      <div class="plus-icon" @click="showModal = true">+</div>
+      <div v-if="showModal" class="modal-overlay">
         <div class="modal-content">
-          <h3>กรอกรหัสเพื่อเข้าร่วมรายวิชา</h3>
+          <h3>กรอกรหัสเพื่อเข้าร่วม</h3>
+
           <input
-            v-model="selectedCourseId"
-            placeholder="รหัสเข้าร่วม"
             type="text"
+            v-model="joinCodeInput"
+            placeholder="รหัสเข้าร่วม"
+            class="join-input"
           />
-          <div class="button-row">
-            <button class="btn-join" @click="joinCourse">เข้าร่วม</button>
-            <button class="btn-cancel" @click="closeJoinModal">ยกเลิก</button>
+
+          <div class="modal-actions">
+            <button @click="confirmJoin" class="confirm-button">
+              เข้าร่วม
+            </button>
+            <button @click="cancelJoin" class="cancel-button">ยกเลิก</button>
           </div>
         </div>
       </div>
@@ -107,8 +92,8 @@ export default {
       todayCourses: [],
       enrolledCourseIds: [],
       availableCourses: [],
-      showJoinModal: false,
-      selectedCourseId: "",
+      showModal: false,
+      joinCodeInput: "",
     };
   },
   async mounted() {
@@ -116,59 +101,44 @@ export default {
     const headers = { Authorization: token };
     const now = new Date();
 
-    try {
-      const userInfo = await axios.get("/user-info", { headers });
-      this.studentId = userInfo.data.studentDetails.StudentID;
+    const allRes = await axios.get("/all-courses", { headers });
+    const allCourses = allRes.data;
 
-      const enrolledRes = await axios.get(
-        `/student-courses/${this.studentId}`,
-        { headers }
-      );
-      const enrolled = enrolledRes.data;
+    const joinedCourseIds = JSON.parse(
+      localStorage.getItem("joinedCourses") || "[]"
+    );
 
-      this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
+    const myCourses = allCourses.filter((c) =>
+      joinedCourseIds.includes(c.CourseID)
+    );
 
-      const allRes = await axios.get("/all-courses", { headers });
-      const rawCourses = allRes.data;
+    const withStatus = myCourses.map((c) => {
+      const start = new Date(`${c.CourseDate}T${c.StartTime}`);
+      const end = new Date(`${c.CourseDate}T${c.EndTime}`);
+      const isSameDay = (a, b) => a.toDateString() === b.toDateString();
+      const isToday = isSameDay(start, now);
 
-      const enrolledCourses = rawCourses.filter((c) =>
-        this.enrolledCourseIds.includes(c.CourseID)
-      );
+      let status = "";
+      if (isToday && now >= start && now <= end) status = "In Progress";
+      else if (isToday && now < start) status = "Upcoming";
+      else if (isToday && now > end) status = "Canceled";
 
-      const withStatus = enrolledCourses.map((c) => {
-        const start = new Date(`${c.CourseDate}T${c.StartTime}`);
-        const end = new Date(`${c.CourseDate}T${c.EndTime}`);
-        const isSameDay = (a, b) =>
-          a.getFullYear() === b.getFullYear() &&
-          a.getMonth() === b.getMonth() &&
-          a.getDate() === b.getDate();
-        const isToday = isSameDay(start, now);
-        let status = "";
-        if (isToday && now >= start && now <= end) status = "In Progress";
-        else if (isToday && now < start) status = "Upcoming";
-        else if (isToday && now > end) status = "Canceled";
-        return {
-          courseId: c.CourseID,
-          courseName: c.CourseName,
-          schedule: {
-            date: c.CourseDate,
-            startTime: c.StartTime,
-            endTime: c.EndTime,
-            dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
-          },
-          status,
-          isToday,
-        };
-      });
+      return {
+        courseId: c.CourseID,
+        courseName: c.CourseName,
+        schedule: {
+          date: c.CourseDate,
+          startTime: c.StartTime,
+          endTime: c.EndTime,
+          dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
+        },
+        status,
+        isToday,
+      };
+    });
 
-      this.allCourses = withStatus;
-      this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
-      this.availableCourses = rawCourses.filter(
-        (c) => !this.enrolledCourseIds.includes(c.CourseID)
-      );
-    } catch (err) {
-      console.error("Error loading data:", err);
-    }
+    this.allCourses = withStatus;
+    this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
   },
   methods: {
     logout() {
@@ -187,48 +157,108 @@ export default {
       if (status === "Canceled") return "#FF2929";
       return "#000";
     },
-    openJoinModal() {
-      this.showJoinModal = true;
+    cancelJoin() {
+      this.joinCodeInput = "";
+      this.showModal = false;
     },
-    closeJoinModal() {
-      this.selectedCourseId = "";
-      this.showJoinModal = false;
-    },
-    async joinCourse() {
-      if (!this.selectedCourseId) {
-        return alert("กรุณากรอกรหัสรายวิชา");
+    confirmJoin() {
+      if (!this.joinCodeInput) {
+        alert("Please enter a join code.");
+        return;
       }
+
+      this.submitJoinCode();
+    },
+
+    async submitJoinCode() {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: token };
 
       try {
-        const token = localStorage.getItem("token");
-        const userInfo = await axios.get("/user-info", {
-          headers: { Authorization: token },
-        });
-
-        const studentId = userInfo.data?.studentDetails?.StudentID;
-        if (!studentId) {
-          return alert("เฉพาะนักศึกษาที่สามารถเข้าร่วมรายวิชาได้");
-        }
-
-        await axios.post(
+        const userInfo = await axios.get("/user-info", { headers });
+        this.studentId = userInfo.data.studentDetails.StudentID;
+        const response = await axios.post(
           "/join-course",
           {
-            studentId,
-            courseId: this.selectedCourseId,
+            studentId: this.studentId,
+            joinCode: this.joinCodeInput,
           },
-          {
-            headers: { Authorization: token },
-          }
+          { headers }
         );
 
-        alert("เข้าร่วมรายวิชาสำเร็จ!");
-        this.closeJoinModal();
-        location.reload();
-      } catch (err) {
-        alert(
-          "เข้าร่วมล้มเหลว: " + (err.response?.data?.message || "ไม่ทราบสาเหตุ")
+        const joined = JSON.parse(
+          localStorage.getItem("joinedCourses") || "[]"
         );
+        joined.push(response.data.courseId);
+        localStorage.setItem(
+          "joinedCourses",
+          JSON.stringify([...new Set(joined)])
+        );
+
+        alert("Joined successfully!");
+        this.showModal = false;
+        this.reloadCourses(); // method นี้ไว้ refresh
+      } catch (err) {
+        alert("Invalid join code or already joined.");
+        console.error("Join failed:", err);
       }
+    },
+
+    async reloadCourses() {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: token };
+
+      try {
+        const enrolledRes = await axios.get(`/join-course/${this.studentId}`, {
+          headers,
+        });
+        const enrolled = enrolledRes.data;
+        this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
+
+        const allRes = await axios.get("/all-courses", { headers });
+        const rawCourses = allRes.data;
+
+        const now = new Date();
+        const enrolledCourses = rawCourses.filter((c) =>
+          this.enrolledCourseIds.includes(c.CourseID)
+        );
+
+        const withStatus = enrolledCourses.map((c) => {
+          const start = new Date(`${c.CourseDate}T${c.StartTime}`);
+          const end = new Date(`${c.CourseDate}T${c.EndTime}`);
+          const isSameDay = (a, b) =>
+            a.getFullYear() === b.getFullYear() &&
+            a.getMonth() === b.getMonth() &&
+            a.getDate() === b.getDate();
+          const isToday = isSameDay(start, now);
+
+          let status = "";
+          if (isToday && now >= start && now <= end) status = "In Progress";
+          else if (isToday && now < start) status = "Upcoming";
+          else if (isToday && now > end) status = "Canceled";
+
+          return {
+            courseId: c.CourseID,
+            courseName: c.CourseName,
+            schedule: {
+              date: c.CourseDate,
+              startTime: c.StartTime,
+              endTime: c.EndTime,
+              dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
+            },
+            status,
+            isToday,
+          };
+        });
+
+        this.allCourses = withStatus;
+        this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
+      } catch (error) {
+        console.error("Error reloading courses:", error);
+      }
+    },
+    goToAttendance(courseId) {
+      this.$router.push({ name: "StudentAttd", params: { courseId } });
     },
   },
 };
@@ -244,6 +274,37 @@ export default {
   display: flex;
   height: 100vh;
   background-color: #f5f5f5;
+}
+.sidebar {
+  width: 250px;
+  background: #f8f9fa;
+  height: 100vh;
+  padding: 20px;
+}
+.menu-item {
+  padding: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  color: black;
+  display: block;
+  background: transparent;
+  transition: all 0.2s ease-in-out;
+  margin-bottom: 5px;
+}
+
+.menu-item:hover,
+.active {
+  background: #ffc107;
+  border-radius: 12px;
+}
+
+.active {
+  background: #ffc107;
+  border-radius: 10px;
+}
+.menu-item:last-child {
+  margin-bottom: 0;
 }
 .main-container {
   width: 75%;
@@ -332,67 +393,51 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .modal-content {
   background: white;
-  padding: 1.5rem;
-  border-radius: 15px;
+  padding: 20px;
   width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  border-radius: 10px;
+  text-align: center;
 }
 .modal-content h3 {
   color: #003366;
-  text-align: center;
-  margin-bottom: 20px;
 }
-.modal-content input,
-.modal-content button {
+.modal-buttons button {
+  margin: 0 1ren;
+}
+.confirm-button {
+  background-color: #003366;
+  color: white;
+  border-radius: 15px;
+}
+
+.cancel-button {
+  background-color: #cccccc;
+  color: black;
+  border-radius: 15px;
+}
+
+.join-input {
   width: 100%;
-  padding: 8px;
-  font-size: 1rem;
-}
-
-.modal-content input {
-  width: 100%;
-  padding: 8px;
-  font-size: 1rem;
-  border-radius: 8px; /* ความมนของ input */
-  border: 1px solid #ccc;
-}
-
-.button-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.button-row button {
-  flex: 1;
   padding: 10px;
-  font-size: 1rem;
-  border-radius: 8px;
+  margin: 10px 0;
+  border-radius: 10px;
+}
+
+.modal-actions button {
+  margin: 5px;
+  padding: 10px 20px;
   border: none;
   cursor: pointer;
 }
-
-.btn-join {
-  background-color: #003366;
-  color: white;
-}
-
-.btn-cancel {
-  background-color: #cccccc;
-  color: white;
-}
-
 </style>

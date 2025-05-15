@@ -485,9 +485,9 @@ app.get("/course/:courseId/join-code", authenticate(["lecturer", "admin"]), asyn
   }
 });
 app.post("/join-course", authenticate(["student"]), (req, res) => {
-  const { studentId, JoinCode } = req.body;
+  const { studentId, joinCode } = req.body;
 
-  if (!studentId || !JoinCode) {
+  if (!studentId || !joinCode) {
     return res
       .status(400)
       .json({ message: "Student ID and join code are required" });
@@ -495,7 +495,7 @@ app.post("/join-course", authenticate(["student"]), (req, res) => {
 
   pool.query(
     "SELECT CourseID FROM Course WHERE JoinCode = ?",
-    [JoinCode],
+    [joinCode],
     (err, courseResults) => {
       if (err) {
         console.error("Database error:", err);
