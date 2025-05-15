@@ -1,17 +1,13 @@
 <template>
   <div class="home">
     <!-- Sidebar -->
-    <nav class="w-25 bg-warning text-white d-flex flex-column p-4">
-      <h2 class="mb-5">AttendEase</h2>
-      <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-2"><router-link to="/lecturer/home" class="nav-link text-white">Home</router-link></li>
-        <li class="nav-item mb-2"><router-link to="/lecturer/notifications" class="nav-link text-white">Notification</router-link></li>
-        <li class="nav-item mb-2"><router-link to="/lecturer/summary" class="nav-link text-white">Summary</router-link></li>
-      </ul>
-      <div class="mt-auto">
-        <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>
-      </div>
-    </nav>
+    <div class="sidebar d-flex flex-column">
+      <h2 class="fw-bold">Menu</h2>
+      <router-link to="/home" class="menu-item active">🏠 Home</router-link>
+      <router-link to="/notification" class="menu-item">🔔 Notification</router-link>
+      <router-link to="/summary" class="menu-item">📊 Summary</router-link>
+      <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
+    </div>
 
     <!-- Main Content -->
     <div class="main-container">
@@ -376,6 +372,37 @@ export default {
   display: flex;
   height: 100vh;
   background-color: #f5f5f5;
+}
+.sidebar {
+  width: 250px;
+  background: #f8f9fa;
+  height: 100vh;
+  padding: 20px;
+}
+.menu-item {
+  padding: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  color: black;
+  display: block;
+  background: transparent;
+  transition: all 0.2s ease-in-out;
+  margin-bottom: 5px;
+}
+
+.menu-item:hover,
+.active {
+  background: #ffc107;
+  border-radius: 12px;
+}
+
+.active {
+  background: #ffc107;
+  border-radius: 10px;
+}
+.menu-item:last-child {
+  margin-bottom: 0;
 }
 .main-container {
   width: 75%;

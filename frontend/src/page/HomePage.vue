@@ -1,30 +1,13 @@
 <template>
   <div class="home">
     <!-- Sidebar -->
-    <nav class="w-25 bg-warning text-white d-flex flex-column p-4">
-      <h2 class="mb-5">AttendEase</h2>
-      <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-2">
-          <router-link to="/home" class="nav-link text-white">Home</router-link>
-        </li>
-        <li class="nav-item mb-2">
-          <router-link to="/notifications" class="nav-link text-white"
-            >Notification</router-link
-          >
-        </li>
-        <li class="nav-item mb-2">
-          <router-link to="/summary" class="nav-link text-white"
-            >Summary</router-link
-          >
-        </li>
-      </ul>
-      
-      <div class="mt-auto">
-        <button @click="logout" class="btn btn-light text-warning w-100">
-          Log Out
-        </button>
-      </div>
-    </nav>
+    <div class="sidebar d-flex flex-column">
+      <h2 class="fw-bold">Menu</h2>
+      <router-link to="/home" class="menu-item active">🏠 Home</router-link>
+      <router-link to="/notification" class="menu-item">🔔 Notification</router-link>
+      <router-link to="/summary" class="menu-item">📊 Summary</router-link>
+      <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
+    </div>
 
     <!-- Main Content -->
     <div class="main-container">
@@ -71,21 +54,20 @@
       </div>
 
       <div class="plus-icon" @click="showModal = true">+</div>
-      <!-- <button @click="showJoinModal = true" class="plus-button">+</button> -->
       <div v-if="showModal" class="modal-overlay">
         <div class="modal-content">
-          <h3>Join Course</h3>
+          <h3>กรอกรหัสเพื่อเข้าร่วม</h3>
 
           <input
             type="text"
             v-model="joinCodeInput"
-            placeholder="Enter Join Code"
+            placeholder="รหัสเข้าร่วม"
             class="join-input"
           />
 
           <div class="modal-actions">
-            <button @click="confirmJoin" class="confirm-button">Join</button>
-            <button @click="cancelJoin" class="cancel-button">Cancel</button>
+            <button @click="confirmJoin" class="confirm-button">เข้าร่วม</button>
+            <button @click="cancelJoin" class="cancel-button">ยกเลิก</button>
           </div>
         </div>
       </div>
@@ -229,6 +211,37 @@ export default {
   height: 100vh;
   background-color: #f5f5f5;
 }
+.sidebar {
+  width: 250px;
+  background: #f8f9fa;
+  height: 100vh;
+  padding: 20px;
+}
+.menu-item {
+  padding: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  color: black;
+  display: block;
+  background: transparent;
+  transition: all 0.2s ease-in-out;
+  margin-bottom: 5px;
+}
+
+.menu-item:hover,
+.active {
+  background: #ffc107;
+  border-radius: 12px;
+}
+
+.active {
+  background: #ffc107;
+  border-radius: 10px;
+}
+.menu-item:last-child {
+  margin-bottom: 0;
+}
 .main-container {
   width: 75%;
   height: 100%;
@@ -328,24 +341,38 @@ export default {
 .modal-content {
   background: white;
   padding: 20px;
-  width: 300px;
+  width: 400px;
   border-radius: 10px;
   text-align: center;
 }
+.modal-content h3 {
+  color: #003366;
+}
 .modal-buttons button {
-  margin: 0 0.5rem;
+  margin: 0 1ren;
+}
+.confirm-button {
+  background-color: #003366;
+  color: white;
+  border-radius: 15px;
 }
 
+.cancel-button {
+  background-color: #cccccc;
+  color: black;
+  border-radius: 15px;
+}
 
 .join-input {
   width: 100%;
   padding: 10px;
   margin: 10px 0;
+  border-radius: 10px;
 }
 
 .modal-actions button {
   margin: 5px;
-  padding: 10px 15px;
+  padding: 10px 20px;
   border: none;
   cursor: pointer;
 }
