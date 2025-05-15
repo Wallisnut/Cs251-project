@@ -24,9 +24,9 @@
 
         <div
           class="notification-item"
-          v-for="(item, index) in filteredNotifications"
+          v-for="item in filteredNotifications"
           :key="item.NotificationID"
-          @click="markAsRead(item.NotificationID, index)"
+          @click="markAsRead(item.NotificationID)"
         >
           <img class="icon" :src="userIcon" alt="user icon" />
           <div class="text">
@@ -71,8 +71,6 @@ export default {
   created() {
     const token = localStorage.getItem("token");
     if (token) {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      this.userId = payload.UserID;
       this.fetchNotifications();
     }
   },
@@ -82,7 +80,7 @@ export default {
       if (!token) return;
 
       axios
-        .get("http://localhost:5000/notifications", {
+        .get("/notifications", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -94,21 +92,18 @@ export default {
           console.error("Error fetching notifications:", err);
         });
     },
-    markAsRead(id, index) {
-      if (this.filteredNotifications[index].Status === "unread") {
-        axios
-          .put(`http://localhost:5000/notifications/${id}/mark-read`, null, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          })
-          .then(() => {
-            this.filteredNotifications[index].Status = "read";
-          })
-          .catch((err) => {
-            console.error("Error updating notification:", err);
-          });
-      }
+    markAsRead(id) {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      axios
+        .put(`/notifications/${id}/mark-read`, null, { headers })
+        .then(() => {
+          this.fetchNotifications();
+        })
+        .catch((err) => {
+          console.error("Error updating notification:", err);
+        });
     },
     formatDate(datetime) {
       const d = new Date(datetime);

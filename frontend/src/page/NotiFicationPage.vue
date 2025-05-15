@@ -49,7 +49,6 @@ export default {
   name: "NotiFicationPage",
   data() {
     return {
-      studentId: "66001", // ใช้ StudentID ที่มีอยู่ในฐานข้อมูล
       notifications: [],
       userIcon,
       homeIcon,
@@ -62,36 +61,52 @@ export default {
     this.fetchNotifications();
   },
   methods: {
-    fetchNotifications() {
+  fetchNotifications() {
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Bearer ${token}` };
+
+    axios
+      .get("/notifications", { headers })
+      .then((res) => {
+        this.notifications = res.data;
+      })
+      .catch((err) => {
+        console.error("Error fetching notifications:", err);
+      });
+  },
+  markAsRead(index) {
+    const notification = this.notifications[index];
+    if (notification.Status === "unread") {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
       axios
-        .get(`/notifications/${this.studentId}`)
-        .then((res) => {
-          this.notifications = res.data;
+        .put(`/notifications/${notification.NotificationID}/mark-read`, {}, { headers })
+        .then(() => {
+          this.notifications[index].Status = "read";
         })
         .catch((err) => {
-          console.error("Error fetching notifications:", err);
+          console.error("Error marking as read:", err);
         });
-    },
-    markAsRead(index) {
-      if (this.notifications[index].Status === "unread") {
-        this.notifications[index].Status = "read";
-        // ถ้าต้องการอัปเดตฐานข้อมูลจริง ควรยิง PATCH ไปยัง backend ที่อัปเดต Status
-      }
-    },
-    formatDate(datetime) {
-      const d = new Date(datetime);
-      return d.toLocaleString("th-TH", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    },
-    logout() {
-      alert("Logging out...");
-    },
+    }
   },
+
+  formatDate(datetime) {
+    const d = new Date(datetime);
+    return d.toLocaleString("th-TH", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  },
+
+  logout() {
+    localStorage.removeItem("token");
+    this.$router.push("/login");
+  },
+},
 };
 </script>
 
@@ -102,7 +117,6 @@ export default {
   font-family: 'Inter', sans-serif;
 }
 
-/* Sidebar Styles */
 .sidebar {
   width: 250px;
   background: #f8f9fa;

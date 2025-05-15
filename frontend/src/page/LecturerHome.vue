@@ -366,7 +366,7 @@ export default {
             courseDate: formattedDate,
           };
 
-          const response = await axios.post("http://localhost:5000/add-course", payload, { headers });
+          const response = await axios.post("/add-course", payload, { headers });
           console.log("Response:", response.data);
           const joinCode = response.data.joinCode
           joinCodes.push(response.data.joinCode);
