@@ -742,40 +742,104 @@ app.post("/record-attendance", authenticate(["lecturer"]), (req, res) => {
   });
 });
 
+
 app.get(
   "/attendance-report/:courseId",
-  authenticate(["lecturer", "admin"]),
-  (req, res) => {
+  authenticate(["student","lecturer", "admin"]),
+  async (req, res) => {
     const { courseId } = req.params;
 
-    const query = `
-      SELECT 
+    try {
+      const [report] = await pool.promise().query(
+        `SELECT 
         s.StudentID, 
-        u.FirstName AS StudentFirstName, 
-        u.LastName AS StudentLastName, 
-        COUNT(a.Status) AS TotalClasses, 
+        u.FirstName, 
+        u.LastName,
+        COUNT(a.Status) AS TotalClasses,
         SUM(a.Status = 'present') AS PresentClasses,
         SUM(a.Status = 'absent') AS AbsentClasses,
-        SUM(a.Status = 'late') AS LateClasses
-      FROM Attendance a
-      JOIN Student s ON a.StudentID = s.StudentID
-      JOIN User u ON s.UserID = u.UserID
-      WHERE a.CourseID = ?
-      GROUP BY s.StudentID;
-    `;
-    pool.query(query, [courseId], (err, results) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res.status(500).json({
-          message: "Failed to fetch attendance report",
-          error: err.message,
+        SUM(a.Status = 'late') AS LateClasses,
+        SUM(a.ApprovalStatus = 'approved') AS ApprovedClasses,
+        SUM(a.ApprovalStatus = 'rejected') AS RejectedClasses
+       FROM Attendance a
+       JOIN Student s ON a.StudentID = s.StudentID
+       JOIN User u ON s.UserID = u.UserID
+       WHERE a.CourseID = ?
+       GROUP BY s.StudentID`,
+        [courseId],
+      );
+
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching attendance report:", error);
+      res.status(500).json({
+        message: "Failed to fetch attendance report",
+        error: error.message,
+      });
+    }
+  },
+);
+
+app.post(
+  "/attendance-approval/:courseId",
+  authenticate(["student"]),
+  async (req, res) => {
+    const { courseId } = req.params;
+
+    try {
+      const [attendanceRecords] = await pool.promise().query(
+        `SELECT AttendanceID, StudentID, Status 
+         FROM Attendance 
+         WHERE CourseID = ?`,
+        [courseId],
+      );
+
+      if (attendanceRecords.length === 0) {
+        return res
+          .status(404)
+          .json({ message: "No attendance records found for this course." });
+      }
+
+      const expectedStatusMap = new Map();
+      attendanceRecords.forEach((record) => {
+        expectedStatusMap.set(record.StudentID, "present");
+      });
+
+      const approvalResults = [];
+      for (const record of attendanceRecords) {
+        const expectedStatus = expectedStatusMap.get(record.StudentID);
+        const approvalStatus =
+          expectedStatus === record.Status ? "approved" : "rejected";
+
+        await pool.promise().query(
+          `UPDATE Attendance 
+           SET ApprovalStatus = ? 
+           WHERE AttendanceID = ?`,
+          [approvalStatus, record.AttendanceID],
+        );
+
+        approvalResults.push({
+          studentId: record.StudentID,
+          recordedStatus: record.Status,
+          expectedStatus,
+          approvalStatus,
         });
       }
 
-      res.json(results);
-    });
+      res.json({
+        message: "Attendance approval processed",
+        results: approvalResults,
+      });
+    } catch (error) {
+      console.error("Attendance approval error:", error);
+      res.status(500).json({
+        message: "Failed to process attendance approval",
+        error: error.message,
+      });
+    }
   },
 );
+
 
 app.get(
   "/attendance-history/:studentId",
