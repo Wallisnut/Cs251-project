@@ -601,6 +601,8 @@ app.get("/teach-in", authenticate(["lecturer", "admin"]), async (req, res) => {
   } catch (err) {
     console.error("Error in /teach-in:", err);
     res.status(500).json({ message: "Server error", error: err.message });
+  }
+}); 
 
 app.get('/my-courses', authenticate(['lecturer']), async (req, res) => {
   try {
@@ -1289,8 +1291,8 @@ app.delete(
     }
   },
 );
-const PORT = process.env.PORT || 5000;
 
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

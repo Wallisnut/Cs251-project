@@ -7,7 +7,7 @@
       <router-link to="/notification" class="menu-item"
         >🔔 Notification</router-link
       >
-      <router-link to="/summary" class="menu-item">📊 Summary</router-link>
+      <router-link to="/personal_summary" class="menu-item">📊 Summary</router-link>
       <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
 
@@ -102,7 +102,7 @@ export default {
     const now = new Date();
 
     const allRes = await axios.get("/all-courses", { headers });
-    const allCourses = allRes.data;
+    const allCourses = allRes.data.courses;
 
     const joinedCourseIds = JSON.parse(
       localStorage.getItem("joinedCourses") || "[]"
@@ -216,7 +216,7 @@ export default {
         this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
 
         const allRes = await axios.get("/all-courses", { headers });
-        const rawCourses = allRes.data;
+        const rawCourses = allRes.data.courses;
 
         const now = new Date();
         const enrolledCourses = rawCourses.filter((c) =>

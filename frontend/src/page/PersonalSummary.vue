@@ -5,7 +5,7 @@
       <h2 class="mb-5">Menu</h2>
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item mb-2">
-          <router-link to="/admin/home" class="menu-item nav-link text-black">Home</router-link>
+          <router-link to="/home" class="menu-item nav-link text-black">Home</router-link>
         </li>
         <li class="nav-item mb-2">
           <router-link to="/notification" class="menu-item nav-link text-black">Notification</router-link>

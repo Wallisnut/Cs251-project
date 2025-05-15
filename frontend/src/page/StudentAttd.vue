@@ -5,7 +5,7 @@
       <h2 class="fw-bold">Menu</h2>
       <router-link to="/home" class="menu-item active">🏠 Home</router-link>
       <router-link to="/notification" class="menu-item">🔔 Notification</router-link>
-      <router-link to="/summary" class="menu-item">📊 Summary</router-link>
+      <router-link to="/personal_summary" class="menu-item">📊 Summary</router-link>
       <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
 

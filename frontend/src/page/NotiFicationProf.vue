@@ -3,13 +3,13 @@
     <!-- Sidebar -->
     <div class="sidebar d-flex flex-column">
       <h2 class="fw-bold">Menu</h2>
-      <router-link to="/home" class="menu-item" active-class="active">
+      <router-link to="/lecturer/home" class="menu-item" active-class="active">
         <img class="menu-icon" :src="homeIcon" alt="Home" /> Home
       </router-link>
-      <router-link to="/notification" class="noti-item" active-class="active">
+      <router-link to="/notificationProf" class="noti-item" active-class="active">
         <img class="menu-icon" :src="notiIcon" alt="Notification" /> Notification
       </router-link>
-      <router-link to="/summary" class="menu-item" active-class="active">
+      <router-link to="/course_summary" class="menu-item" active-class="active">
         <img class="menu-icon" :src="summaryIcon" alt="Summary" /> Summary
       </router-link>
       <div class="menu-item mt-auto" @click="logout">
