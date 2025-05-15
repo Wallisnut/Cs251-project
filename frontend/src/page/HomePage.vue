@@ -99,7 +99,10 @@ export default {
   async mounted() {
     const token = localStorage.getItem("token");
     const headers = { Authorization: token };
-    const now = new Date();
+
+    const today = new Date();
+    const formatted = this.formatDateLocal(today);
+    console.log("Today is:", formatted);
 
     const allRes = await axios.get("/all-courses", { headers });
     const allCourses = allRes.data.courses;
@@ -116,12 +119,12 @@ export default {
       const start = new Date(`${c.CourseDate}T${c.StartTime}`);
       const end = new Date(`${c.CourseDate}T${c.EndTime}`);
       const isSameDay = (a, b) => a.toDateString() === b.toDateString();
-      const isToday = isSameDay(start, now);
+      const isToday = isSameDay(start, today);
 
       let status = "";
-      if (isToday && now >= start && now <= end) status = "In Progress";
-      else if (isToday && now < start) status = "Upcoming";
-      else if (isToday && now > end) status = "Canceled";
+      if (isToday && today >= start && today <= end) status = "In Progress";
+      else if (isToday && today < start) status = "Upcoming";
+      else if (isToday && today > end) status = "Canceled";
 
       return {
         courseId: c.CourseID,
@@ -140,34 +143,45 @@ export default {
     this.allCourses = withStatus;
     this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
   },
+
   methods: {
     logout() {
       localStorage.removeItem("token");
       this.$router.push("/login");
     },
+
     getCourseCardClass(status) {
       if (status === "In Progress") return "in-progress";
       if (status === "Upcoming") return "upcoming";
       if (status === "Canceled") return "canceled";
       return "";
     },
+
     getStatusDotColor(status) {
       if (status === "In Progress") return "#2BC642";
       if (status === "Upcoming") return "#FFCD29";
       if (status === "Canceled") return "#FF2929";
       return "#000";
     },
+
     cancelJoin() {
       this.joinCodeInput = "";
       this.showModal = false;
     },
+
     confirmJoin() {
       if (!this.joinCodeInput) {
         alert("Please enter a join code.");
         return;
       }
-
       this.submitJoinCode();
+    },
+
+    formatDateLocal(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     },
 
     async submitJoinCode() {
@@ -177,6 +191,7 @@ export default {
       try {
         const userInfo = await axios.get("/user-info", { headers });
         this.studentId = userInfo.data.studentDetails.StudentID;
+
         const response = await axios.post(
           "/join-course",
           {
@@ -197,7 +212,7 @@ export default {
 
         alert("Joined successfully!");
         this.showModal = false;
-        this.reloadCourses(); // method นี้ไว้ refresh
+        this.reloadCourses(); // รีโหลดวิชาใหม่
       } catch (err) {
         alert("Invalid join code or already joined.");
         console.error("Join failed:", err);
@@ -209,6 +224,9 @@ export default {
       const headers = { Authorization: token };
 
       try {
+        const userInfo = await axios.get("/user-info", { headers });
+        this.studentId = userInfo.data.studentDetails.StudentID;
+
         const enrolledRes = await axios.get(`/join-course/${this.studentId}`, {
           headers,
         });
@@ -219,6 +237,8 @@ export default {
         const rawCourses = allRes.data.courses;
 
         const now = new Date();
+        const todayStr = this.formatDateLocal(now);
+
         const enrolledCourses = rawCourses.filter((c) =>
           this.enrolledCourseIds.includes(c.CourseID)
         );
@@ -226,11 +246,7 @@ export default {
         const withStatus = enrolledCourses.map((c) => {
           const start = new Date(`${c.CourseDate}T${c.StartTime}`);
           const end = new Date(`${c.CourseDate}T${c.EndTime}`);
-          const isSameDay = (a, b) =>
-            a.getFullYear() === b.getFullYear() &&
-            a.getMonth() === b.getMonth() &&
-            a.getDate() === b.getDate();
-          const isToday = isSameDay(start, now);
+          const isToday = this.formatDateLocal(start) === todayStr;
 
           let status = "";
           if (isToday && now >= start && now <= end) status = "In Progress";
@@ -257,6 +273,7 @@ export default {
         console.error("Error reloading courses:", error);
       }
     },
+
     goToAttendance(courseId) {
       this.$router.push({ name: "StudentAttd", params: { courseId } });
     },
