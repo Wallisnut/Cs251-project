@@ -5,6 +5,9 @@ import HomePage from '../page/HomePage.vue';
 import AdminHome from '../page/AdminHome.vue';
 import LecturerHome from '../page/LecturerHome.vue';
 import NotiFication from '../page/NotiFicationPage.vue'
+import Summary from '../page/Summary.vue';
+import PersonalSummary from '../page/PersonalSummary.vue';
+import StudentAttd from '../page/StudentAttd.vue';
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -15,6 +18,10 @@ const routes = [
   { path: '/lecturer/home', name: 'lecturerhome', component: LecturerHome },
   { path: '/StudentAttd', name: 'StudentAttd', component: () => import('../page/StudentAttd.vue') },
   {path: '/notification', component: NotiFication}, 
+  { path: '/admin/home', name: 'adminhome', component: AdminHome },
+  { path: '/course_summary', name: 'course_summary', component: Summary },
+  { path: '/personal_summary', name: 'personal_summary', component: PersonalSummary },
+  { path: '/stdattd/:courseId', name: 'StudentAttd',component: StudentAttd},
 ];
 
 export default createRouter({

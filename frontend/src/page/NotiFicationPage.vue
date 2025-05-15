@@ -9,7 +9,7 @@
       <router-link to="/notification" class="menu-item" active-class="active">
         <img class="menu-icon" :src="notiIcon" alt="Notification" /> Notification
       </router-link>
-      <router-link to="/summary" class="menu-item" active-class="active">
+      <router-link to="/personal_summary" class="menu-item" active-class="active">
         <img class="menu-icon" :src="summaryIcon" alt="Summary" /> Summary
       </router-link>
       <div class="menu-item mt-auto" @click="logout">
@@ -39,11 +39,11 @@
 
 <script>
 import axios from "axios";
-import userIcon from "@/assets/user-icon.png";
-import homeIcon from "@/assets/home-icon.png";
-import notiIcon from "@/assets/noti-icon.png";
-import summaryIcon from "@/assets/summary-icon.png";
-import logoutIcon from "@/assets/logout-icon.png";
+import userIcon from "../assets/user-icon.png";
+import homeIcon from "../assets/home-icon.png";
+import notiIcon from "../assets/noti-icon.png";
+import summaryIcon from "../assets/summary-icon.png";
+import logoutIcon from "../assets/logout-icon.png";
 
 export default {
   name: "NotiFicationPage",
