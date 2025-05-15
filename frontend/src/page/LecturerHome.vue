@@ -250,7 +250,7 @@ export default {
           courseDate: formattedDate,
         };
 
-        await axios.post("/add-course", payload, { headers });
+        await axios.post("http://localhost:5000/add-course", payload, { headers });
 
         const start = new Date(`${payload.courseDate}T${payload.startTime}`);
         const end = new Date(`${payload.courseDate}T${payload.endTime}`);

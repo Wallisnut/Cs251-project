@@ -8,14 +8,21 @@
           <router-link to="/home" class="nav-link text-white">Home</router-link>
         </li>
         <li class="nav-item mb-2">
-          <router-link to="/notifications" class="nav-link text-white">Notification</router-link>
+          <router-link to="/notifications" class="nav-link text-white"
+            >Notification</router-link
+          >
         </li>
         <li class="nav-item mb-2">
-          <router-link to="/summary" class="nav-link text-white">Summary</router-link>
+          <router-link to="/summary" class="nav-link text-white"
+            >Summary</router-link
+          >
         </li>
       </ul>
+      
       <div class="mt-auto">
-        <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>
+        <button @click="logout" class="btn btn-light text-warning w-100">
+          Log Out
+        </button>
       </div>
     </nav>
 
@@ -31,18 +38,25 @@
             :class="getCourseCardClass(course.status)"
           >
             <div class="status">
-              <span :style="{ backgroundColor: getStatusDotColor(course.status) }"></span>
+              <span
+                :style="{ backgroundColor: getStatusDotColor(course.status) }"
+              ></span>
               {{ course.status }}
             </div>
             <h4>{{ course.courseId }}</h4>
             <p>{{ course.schedule.dayOfWeek }}</p>
-            <p>{{ course.schedule.startTime }} - {{ course.schedule.endTime }}</p>
+            <p>
+              {{ course.schedule.startTime }} - {{ course.schedule.endTime }}
+            </p>
           </div>
         </div>
       </div>
 
       <h3 class="all-courses">All Courses</h3>
-      <div class="all-courses" style="display: flex; flex-wrap: wrap; gap: 1rem">
+      <div
+        class="all-courses"
+        style="display: flex; flex-wrap: wrap; gap: 1rem"
+      >
         <div
           v-for="course in allCourses"
           :key="course.courseId"
@@ -56,7 +70,27 @@
         </div>
       </div>
 
-      <div class="plus-icon">+</div>
+      <div class="plus-icon" @click="openJoinModal">+</div>
+
+      <!-- Join Course Modal -->
+      <div
+        v-if="showJoinModal"
+        class="modal-overlay"
+        @click.self="closeJoinModal"
+      >
+        <div class="modal-content">
+          <h3>กรอกรหัสเพื่อเข้าร่วมรายวิชา</h3>
+          <input
+            v-model="selectedCourseId"
+            placeholder="รหัสเข้าร่วม"
+            type="text"
+          />
+          <div class="button-row">
+            <button class="btn-join" @click="joinCourse">เข้าร่วม</button>
+            <button class="btn-cancel" @click="closeJoinModal">ยกเลิก</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -73,6 +107,8 @@ export default {
       todayCourses: [],
       enrolledCourseIds: [],
       availableCourses: [],
+      showJoinModal: false,
+      selectedCourseId: "",
     };
   },
   async mounted() {
@@ -84,7 +120,10 @@ export default {
       const userInfo = await axios.get("/user-info", { headers });
       this.studentId = userInfo.data.studentDetails.StudentID;
 
-      const enrolledRes = await axios.get(`/student-courses/${this.studentId}`, { headers });
+      const enrolledRes = await axios.get(
+        `/student-courses/${this.studentId}`,
+        { headers }
+      );
       const enrolled = enrolledRes.data;
 
       this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
@@ -147,6 +186,49 @@ export default {
       if (status === "Upcoming") return "#FFCD29";
       if (status === "Canceled") return "#FF2929";
       return "#000";
+    },
+    openJoinModal() {
+      this.showJoinModal = true;
+    },
+    closeJoinModal() {
+      this.selectedCourseId = "";
+      this.showJoinModal = false;
+    },
+    async joinCourse() {
+      if (!this.selectedCourseId) {
+        return alert("กรุณากรอกรหัสรายวิชา");
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        const userInfo = await axios.get("/user-info", {
+          headers: { Authorization: token },
+        });
+
+        const studentId = userInfo.data?.studentDetails?.StudentID;
+        if (!studentId) {
+          return alert("เฉพาะนักศึกษาที่สามารถเข้าร่วมรายวิชาได้");
+        }
+
+        await axios.post(
+          "/join-course",
+          {
+            studentId,
+            courseId: this.selectedCourseId,
+          },
+          {
+            headers: { Authorization: token },
+          }
+        );
+
+        alert("เข้าร่วมรายวิชาสำเร็จ!");
+        this.closeJoinModal();
+        location.reload();
+      } catch (err) {
+        alert(
+          "เข้าร่วมล้มเหลว: " + (err.response?.data?.message || "ไม่ทราบสาเหตุ")
+        );
+      }
     },
   },
 };
@@ -241,9 +323,76 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  cursor: default;
+  cursor: pointer;
 }
 .plus-icon:hover {
   box-shadow: 0 0 10px rgba(246, 181, 27, 0.8);
 }
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 15px;
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.modal-content h3 {
+  color: #003366;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.modal-content input,
+.modal-content button {
+  width: 100%;
+  padding: 8px;
+  font-size: 1rem;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 8px;
+  font-size: 1rem;
+  border-radius: 8px; /* ความมนของ input */
+  border: 1px solid #ccc;
+}
+
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.button-row button {
+  flex: 1;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-join {
+  background-color: #003366;
+  color: white;
+}
+
+.btn-cancel {
+  background-color: #cccccc;
+  color: white;
+}
+
 </style>
