@@ -7,6 +7,7 @@ import LecturerHome from '../page/LecturerHome.vue';
 import NotiFication from '../page/NotiFicationPage.vue'
 import Summary from '../page/Summary.vue';
 import PersonalSummary from '../page/PersonalSummary.vue';
+import StudentAttd from '../page/StudentAttd.vue';
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -20,6 +21,7 @@ const routes = [
   { path: '/admin/home', name: 'adminhome', component: AdminHome },
   { path: '/course_summary', name: 'course_summary', component: Summary },
   { path: '/personal_summary', name: 'personal_summary', component: PersonalSummary }
+  { path: '/stdattd/:courseId', name: 'StudentAttd',component: StudentAttd}
 ];
 
 export default createRouter({

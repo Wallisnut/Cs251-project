@@ -8,12 +8,12 @@
           <router-link to="/home" class="nav-link text-white">Home</router-link>
         </li>
         <li class="nav-item mb-2">
-          <router-link to="/notifications" class="nav-link text-white"
+          <router-link to="/notification" class="nav-link text-white"
             >Notification</router-link
           >
         </li>
         <li class="nav-item mb-2">
-          <router-link to="/summary" class="nav-link text-white"
+          <router-link to="/personal_summary" class="nav-link text-white"
             >Summary</router-link
           >
         </li>

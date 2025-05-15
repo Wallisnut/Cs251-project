@@ -6,7 +6,7 @@
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item mb-2"><router-link to="/lecturer/home" class="nav-link text-white">Home</router-link></li>
         <li class="nav-item mb-2"><router-link to="/lecturer/notifications" class="nav-link text-white">Notification</router-link></li>
-        <li class="nav-item mb-2"><router-link to="/lecturer/summary" class="nav-link text-white">Summary</router-link></li>
+        <li class="nav-item mb-2"><router-link to="/course_summary" class="nav-link text-white">Summary</router-link></li>
       </ul>
       <div class="mt-auto">
         <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>

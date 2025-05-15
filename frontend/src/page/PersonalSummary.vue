@@ -4,7 +4,7 @@
     <nav style="width: 15%;" class="w-22 bg-white text-black d-flex flex-column p-4">
       <h2 class="mb-5">Menu</h2>
       <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-2"><router-link to="/admin/home" class="menu-item nav-link text-black">Home</router-link></li>
+        <li class="nav-item mb-2"><router-link to="/home" class="menu-item nav-link text-black">Home</router-link></li>
         <li class="nav-item mb-2"><router-link to="/notification" class="menu-item nav-link text-black">Notification</router-link></li>
         <li class="nav-item mb-2"><router-link to="/course_summary" class="menu-item active nav-link">Summary</router-link></li>
       </ul>
