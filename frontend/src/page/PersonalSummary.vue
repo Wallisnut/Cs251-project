@@ -4,9 +4,15 @@
     <nav style="width: 15%;" class="w-22 bg-white text-black d-flex flex-column p-4">
       <h2 class="mb-5">Menu</h2>
       <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-2"><router-link to="/admin/home" class="menu-item nav-link text-black">Home</router-link></li>
-        <li class="nav-item mb-2"><router-link to="/notification" class="menu-item nav-link text-black">Notification</router-link></li>
-        <li class="nav-item mb-2"><router-link to="/course_summary" class="menu-item active nav-link">Summary</router-link></li>
+        <li class="nav-item mb-2">
+          <router-link to="/admin/home" class="menu-item nav-link text-black">Home</router-link>
+        </li>
+        <li class="nav-item mb-2">
+          <router-link to="/notification" class="menu-item nav-link text-black">Notification</router-link>
+        </li>
+        <li class="nav-item mb-2">
+          <router-link to="/course_summary" class="menu-item active nav-link">Summary</router-link>
+        </li>
       </ul>
       <div class="mt-auto">
         <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>
@@ -20,31 +26,21 @@
         <p class="text-gray-600 -mt-2">แสดงสถิติการเข้าเรียน ขาดเรียน และการลา ตามรายวิชา</p>
       </div>
 
-      <div v-for="(group, index) in groupedByCourse" :key="index" class="mb-8">
+      <div v-for="(group, index) in groupedByCourse" :key="index" class="summary-card">
         <h2 class="text-xl font-bold mb-2">{{ group.course }}</h2>
 
-        <div class="flex space-x-3 mb-2">
-          <span class="bg-black text-white px-4 py-1 rounded-full text-sm">เช็กชื่อ {{ group.present }}</span>
-          <span class="bg-yellow-400 text-black px-4 py-1 rounded-full text-sm">ลา {{ group.late }}</span>
-          <span class="bg-gray-400 text-white px-4 py-1 rounded-full text-sm">ขาดเรียน {{ group.absent }}</span>
+        <div class="status-tags">
+          <span class="badge present">เช็กชื่อ {{ group.present }}</span>
+          <span class="badge late">ลา {{ group.late }}</span>
+          <span class="badge absent">ขาดเรียน {{ group.absent }}</span>
         </div>
 
         <!-- Progress bar -->
-        <!-- Attendance percentage progress bar -->
         <div class="attendance-bar">
-        <!-- Filled bar -->
-        <div
-            class="attendance-fill"
-            :style="{ width: group.attendancePercentage + '%' }"
-        ></div>
-
-        <!-- Badge with percentage -->
-        <div
-            class="attendance-badge"
-            :style="{ left: group.attendancePercentage + '%' }"
-        >
+          <div class="attendance-fill" :style="{ width: group.attendancePercentage + '%' }"></div>
+          <div class="attendance-badge" :style="{ left: group.attendancePercentage + '%' }">
             {{ group.attendancePercentage }}%
-        </div>
+          </div>
         </div>
       </div>
     </div>
@@ -89,13 +85,11 @@ export default {
     },
   },
   mounted() {
-    // You may replace with actual auth info
     this.studentId = localStorage.getItem('studentId');
     if (!this.studentId) {
       console.error('Missing studentId');
       return;
     }
-    
 
     axios
       .get(`/attendance-history/${this.studentId}`)
@@ -108,7 +102,7 @@ export default {
   },
   methods: {
     logout() {
-      // Add logout logic here
+      localStorage.removeItem('studentId');
       this.$router.push('/login');
     },
   },
@@ -116,54 +110,88 @@ export default {
 </script>
 
 <style scoped>
-:root {
-  --progress-left: 70%; /* this will be updated inline by style binding */
-}
 .main {
-    background-color: #f5f5f5;
-    border: 6px solid white;
-    border-radius: 20px;
+  background-color: #f5f5f5;
+  border: 6px solid white;
+  border-radius: 20px;
 }
+
 .menu-item {
   padding: 12px;
   font-weight: bold;
   cursor: pointer;
   text-decoration: none;
-  color: black;
   display: block;
-  background: transparent;
-  transition: all 0.2s ease-in-out;
   border-radius: 12px;
   margin-bottom: 10px;
 }
+
 .menu-item:hover,
 .active {
   background: #ffc107;
   color: black !important;
 }
+
+.summary-card {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  margin-bottom: 24px;
+}
+
+.status-tags {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.badge {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.present {
+  background: black;
+  color: white;
+}
+
+.late {
+  background: #ffc107;
+  color: black;
+}
+
+.absent {
+  background: #6c757d;
+  color: white;
+}
+
 .attendance-bar {
   position: relative;
   width: 100%;
-  height: 12px;
-  border-radius: 6px;
-  background-color: white;
+  height: 14px;
+  background-color: #e0e0e0;
+  border-radius: 7px;
   overflow: hidden;
+  margin-top: 10px;
 }
 
 .attendance-fill {
   position: absolute;
-  top: 0;
+  height: 100%;
+  background-color: #000;
   left: 0;
-  height: 12px;
-  background-color: black;
-  border-radius: 6px;
+  top: 0;
+  transition: width 0.5s ease;
 }
 
 .attendance-badge {
   position: absolute;
-  top: -32px;
+  top: -30px;
   transform: translateX(-50%);
-  background-color: black;
+  background-color: #000;
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -171,7 +199,7 @@ export default {
   white-space: nowrap;
 }
 
-/* Responsive layout for summary cards */
+/* Responsive */
 @media (max-width: 768px) {
   .sidebar {
     display: none;
@@ -182,7 +210,7 @@ export default {
   }
 
   .attendance-bar {
-    height: 8px;
+    height: 10px;
   }
 
   .attendance-badge {
@@ -190,5 +218,4 @@ export default {
     font-size: 10px;
   }
 }
-
 </style>

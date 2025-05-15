@@ -23,6 +23,7 @@
             <option>CS251</option>
           </select>
         </div>
+        <canvas id="attendanceChart" class="max-w-full max-h-96 mb-10"></canvas>
 
         <!-- Table -->
         <div>
@@ -73,6 +74,9 @@
 
 <script>
 import axios from "axios";
+import { Chart, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+
+Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 export default {
   name: "AttendanceSummary",
@@ -100,6 +104,58 @@ export default {
       // add logout logic here
       this.$router.push("/login");
     },
+       renderChart() {
+      const ctx = document.getElementById('attendanceChart').getContext('2d');
+        if (!ctx) {
+        console.error("Canvas context not found");
+        return;
+        }
+      const labels = this.attendanceData.map((item, index) => `${index + 1}th`);
+      const present = this.attendanceData.map(item => item.PresentClasses);
+      const absent = this.attendanceData.map(item => item.AbsentClasses);
+      const late = this.attendanceData.map(item => item.LateClasses);
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Present',
+              data: present,
+              backgroundColor: '#a78bfa', // light purple
+            },
+            {
+              label: 'Absent',
+              data: absent,
+              backgroundColor: '#fca5a5', // soft red
+            },
+            {
+              label: 'Late',
+              data: late,
+              backgroundColor: '#67e8f9', // light blue
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { mode: 'index', intersect: false },
+          },
+          scales: {
+            x: {
+              stacked: false,
+              title: { display: true, text: 'Students' },
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Number of Classes' },
+            },
+          },
+        },
+      });
+    },
   },
   created() {
     const courseId = this.$route.params.courseId;
@@ -115,6 +171,15 @@ export default {
       .finally(() => {
         this.loading = false;
       });
+  },
+    watch: {
+    attendanceData(newData) {
+      if (newData.length > 0) {
+      this.$nextTick(() => {
+        this.renderChart();
+      });
+    }
+    },
   },
 };
 </script>
@@ -152,7 +217,11 @@ export default {
     flex: 1;
     padding: 40px;
 }
-
+canvas {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+}
 .header h1 {
     font-size: 28px;
 }
