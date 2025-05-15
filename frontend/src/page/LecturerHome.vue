@@ -48,11 +48,11 @@
           v-for="course in allCourses"
           :key="course.courseId"
           class="course-card"
-          style="background: #b9b9b9; position: relative"
+          style="background: #b9b9b9; position: relative;z-index: 1;"
         >
           <div class="dots" @click="toggleDropdown(course.courseId)">⋮</div>
-          <div v-if="dropdownVisible === course.courseId" class="dropdown-menu">
-            <button @click="showJoinCode(course)">Join Code</button>
+          <div v-if="dropdownVisible === course.courseId" class="dropdown-menu" ref="dropdown">
+            <button @click="showJoinCodeallcourse(course)">Join Code</button>
           </div>
 
           <h4>{{ course.courseId }}</h4>
@@ -66,7 +66,7 @@
         <div class="modal-content">
           <h3>Join Code</h3>
           <p>{{ selectedCourse?.joinCode }}</p>
-          <button @click="showJoinCodeModal = false">Close</button>
+          <button  class="close-button" @click="showJoinCodeModal = false">Close</button>
         </div>
       </div>
 
@@ -129,6 +129,7 @@ export default {
   name: "HomePage",
   data() {
     return {
+      dropdownVisible: null,
       lecturerId: "",
       taughtCourseIds: [],
       allCourses: [],
@@ -137,7 +138,6 @@ export default {
       showModal: false,
       showJoinModal: false,
       joinCodeToShow: "", 
-      dropdownVisible: null,
       showJoinCodeModal: false,
       selectedCourse: null,
       newCourse: {
@@ -152,60 +152,8 @@ export default {
     };
   },
   async mounted() {
-    const token = localStorage.getItem("token");
-    const headers = { Authorization: token };
-    const now = new Date();
-
-    try {
-      const userInfo = await axios.get("/user-info", { headers });
-      this.lecturerId = userInfo.data.lecturerDetails.LecturerID;
-
-      const teachInRes = await axios.get("/teach-in", { headers });
-      const teachMap = teachInRes.data.filter(
-        (t) => t.LecturerID === this.lecturerId
-      );
-      this.taughtCourseIds = teachMap.map((t) => t.CourseID);
-
-      const allRes = await axios.get("/all-courses", { headers });
-      const rawCourses = allRes.data;
-
-      const filteredCourses = rawCourses.filter((c) =>
-        this.taughtCourseIds.includes(c.CourseID)
-      );
-
-      const withStatus = filteredCourses.map((c) => {
-        const start = new Date(`${c.CourseDate}T${c.StartTime}`);
-        console.log("CourseDate:", c.CourseDate, "Parsed Date:", start);
-        const end = new Date(`${c.CourseDate}T${c.EndTime}`);
-        const isSameDay = (a, b) =>
-          a.getFullYear() === b.getFullYear() &&
-          a.getMonth() === b.getMonth() &&
-          a.getDate() === b.getDate();
-        const isToday = isSameDay(start, now);
-        let status = "";
-        if (isToday && now >= start && now <= end) status = "In Progress";
-        else if (isToday && now < start) status = "Upcoming";
-        else if (isToday && now > end) status = "Canceled";
-        if (isToday) console.log("Matched Course:", c.CourseID, status);
-        return {
-          courseId: c.CourseID,
-          courseName: c.CourseName,
-          schedule: {
-            date: c.CourseDate,
-            startTime: c.StartTime,
-            endTime: c.EndTime,
-            dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
-          },
-          status,
-          isToday,
-        };
-      });
-
-      this.allCourses = withStatus;
-      this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
-    } catch (err) {
-      console.error("Error loading data:", err);
-    }
+    await this.fetchCourses();
+    document.addEventListener("click", this.onClickOutsideDropdown,true);
   },
   computed: {
     totalCreditHours() {
@@ -221,8 +169,22 @@ export default {
       return this.totalCreditHours > 3;
     }
   },
-
   methods: {
+    async showJoinCodeallcourse(course) {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: token };
+      try {
+        const response = await axios.get(`/course/${course.courseId}/join-code`, { headers });
+        this.selectedCourse = {
+          ...course,
+          joinCode: response.data.joinCode,
+        };
+        this.showJoinCodeModal = true;
+      } catch (err) {
+        console.error("Failed to fetch join code:", err);
+        alert("Could not load join code");
+      }
+    },
     logout() {
       localStorage.removeItem("token");
       this.$router.push("/login");
@@ -248,6 +210,73 @@ export default {
 
     toggleDropdown(courseId) {
       this.dropdownVisible = this.dropdownVisible === courseId ? null : courseId;
+    },
+    onClickOutsideDropdown(event) {
+
+      const dropdowns = this.$el.querySelectorAll(".dropdown-menu");
+      const dots = this.$el.querySelectorAll(".dots");
+      
+      for (const el of [...dropdowns, ...dots]) {
+        if (el.contains(event.target)) return;
+      }
+      
+      this.dropdownVisible = null;
+    },
+    async fetchCourses(){
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: token };
+      const now = new Date();
+
+      try {
+        const userInfo = await axios.get("/user-info", { headers });
+        this.lecturerId = userInfo.data.lecturerDetails.LecturerID;
+
+        const teachInRes = await axios.get("/teach-in", { headers });
+        const teachMap = teachInRes.data.filter(
+          (t) => t.LecturerID === this.lecturerId);
+        this.taughtCourseIds = teachMap.map((t) => t.CourseID);
+
+        const allRes = await axios.get("/all-courses", { headers });
+        const rawCourses = allRes.data;
+
+        //const filteredCourses = rawCourses;
+        const filteredCourses = rawCourses.filter((c) =>
+          this.taughtCourseIds.includes(c.CourseID)
+        );
+
+        const withStatus = filteredCourses.map((c) => {
+          const start = new Date(`${c.CourseDate}T${c.StartTime}`);
+          console.log("CourseDate:", c.CourseDate, "Parsed Date:", start);
+          const end = new Date(`${c.CourseDate}T${c.EndTime}`);
+          const isSameDay = (a, b) =>
+            a.getFullYear() === b.getFullYear() &&
+            a.getMonth() === b.getMonth() &&
+            a.getDate() === b.getDate();
+          const isToday = isSameDay(start, now);
+          let status = "";
+          if (isToday && now >= start && now <= end) status = "In Progress";
+          else if (isToday && now < start) status = "Upcoming";
+          else if (isToday && now > end) status = "Canceled";
+          if (isToday) console.log("Matched Course:", c.CourseID, status);
+          return {
+            courseId: c.CourseID,
+            courseName: c.CourseName,
+            schedule: {
+              date: c.CourseDate,
+              startTime: c.StartTime,
+              endTime: c.EndTime,
+              dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
+            },
+            status,
+            isToday,
+          };
+        });
+
+        this.allCourses = withStatus;
+        this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
+      } catch (err) {
+        console.error("Error loading data:", err);
+      }
     },
     showJoinCode(course) {
       this.selectedCourse = course;
@@ -276,84 +305,86 @@ export default {
       const headers = { Authorization: token };
 
       try {
-      for (const schedule of this.newCourse.schedules) {
-        const dayMap = {Sun: 0,Mon: 1,Tue: 2,Wed: 3,Thu: 4,Fri: 5,Sat: 6};
+        const joinCodes = [];
+        for (const schedule of this.newCourse.schedules) {
+          const dayMap = {Sun: 0,Mon: 1,Tue: 2,Wed: 3,Thu: 4,Fri: 5,Sat: 6};
 
-        const today = new Date();
-        const currentDay = today.getDay();
-        const targetDay = dayMap[schedule.day];
-        const offset = (targetDay + 7 - currentDay) % 7;
-        const classDate = new Date(today);
-        classDate.setDate(today.getDate() + offset);
-        const formattedDate = classDate.toISOString().split("T")[0];
+          const today = new Date();
+          const currentDay = today.getDay();
+          const targetDay = dayMap[schedule.day];
+          const offset = (targetDay + 7 - currentDay) % 7;
+          const classDate = new Date(today);
+          classDate.setDate(today.getDate() + offset);
+          const formattedDate = classDate.toISOString().split("T")[0];
 
-        const toMinutes = (time) => {
-          const [h, m] = time.split(":").map(Number);
-          return h * 60 + m;
-        };
+          const toMinutes = (time) => {
+            const [h, m] = time.split(":").map(Number);
+            return h * 60 + m;
+          };
 
-        const courseHour = (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
+          const courseHour = (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
 
-        const payload = {
-          courseId: this.newCourse.courseId,
-          courseName: this.newCourse.courseName || "Untitled Course",
-          courseHour,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          courseDate: formattedDate,
-        };
+          const payload = {
+            courseId: this.newCourse.courseId,
+            courseName: this.newCourse.courseName || "Untitled Course",
+            courseHour,
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+            courseDate: formattedDate,
+          };
 
-        const response = await axios.post("http://localhost:5000/add-course", payload, { headers });
-        const joinCode = response.data.joinCode;
-        alert(`Course added successfully! Join Code: ${joinCode}`);
-        const start = new Date(`${payload.courseDate}T${payload.startTime}`);
-        const end = new Date(`${payload.courseDate}T${payload.endTime}`);
-        const now = new Date();
-        const isSameDay = (a, b) =>
-          a.getFullYear() === b.getFullYear() &&
-          a.getMonth() === b.getMonth() &&
-          a.getDate() === b.getDate();
+          const response = await axios.post("http://localhost:5000/add-course", payload, { headers });
+          console.log("Response:", response.data);
+          const joinCode = response.data.joinCode
+          joinCodes.push(response.data.joinCode);
+          alert(`Courses added successfully!\nJoin Codes:\n${joinCodes.join('\n')}`);
 
-        const isToday = isSameDay(start, now);
+          const start = new Date(`${payload.courseDate}T${payload.startTime}`);
+          const end = new Date(`${payload.courseDate}T${payload.endTime}`);
+          const now = new Date();
+          const isSameDay = (a, b) =>
+            a.getFullYear() === b.getFullYear() &&
+            a.getMonth() === b.getMonth() &&
+            a.getDate() === b.getDate();
 
-        let status = "";
-        if (isToday && now >= start && now <= end) status = "In Progress";
-        else if (isToday && now < start) status = "Upcoming";
-        else if (isToday && now > end) status = "Canceled";
+          const isToday = isSameDay(start, now);
 
-        const newCourse = {
-          courseId: payload.courseId,
-          courseName: payload.courseName,
-          schedule: {
-            date: payload.courseDate,
-            dayOfWeek: schedule.day,
-            startTime: payload.startTime,
-            endTime: payload.endTime,
-          },
-          status,
-          isToday,
-        };
+          let status = "";
+          if (isToday && now >= start && now <= end) status = "In Progress";
+          else if (isToday && now < start) status = "Upcoming";
+          else if (isToday && now > end) status = "Canceled";
 
-        this.allCourses.push(newCourse);
-        if (isToday && status) {
-          this.todayCourses.push(newCourse);
+          const newCourse = {
+            courseId: payload.courseId,
+            courseName: payload.courseName,
+            schedule: {
+              date: payload.courseDate,
+              dayOfWeek: schedule.day,
+              startTime: payload.startTime,
+              endTime: payload.endTime,
+            },
+            status,
+            isToday,
+            joinCode:joinCode
+          };
+
+          this.allCourses.push(newCourse);
+          if (isToday && status) {
+            this.todayCourses.push(newCourse);
+          }
         }
+
+        this.newCourse = {
+          courseId: "",
+          courseName: "",
+          schedules: [{ day: "", startTime: "", endTime: "" }],
+        };
+        this.showModal = false;
+        await this.fetchCourses();
+      } catch (err) {
+        console.error("Failed to add course:", err.response?.data || err.message);
+        alert("Error: " + (err.response?.data?.message || err.message));
       }
-
-
-    await this.fetchCourses();   
-    alert("Course added successfully!");
-    this.newCourse = {
-      courseId: "",
-      courseName: "",
-      schedules: [{ day: "", startTime: "", endTime: "" }],
-    };
-    this.showModal = false;
-
-    } catch (err) {
-      console.error("Failed to add course:", err.response?.data || err.message);
-      alert("Error: " + (err.response?.data?.message || err.message));
-    }
     },
 
     addScheduleRow() {
@@ -399,11 +430,13 @@ export default {
 .today-container {
   display: flex;
   gap: 15px;
+  overflow: visible !important;
   padding-left: 15px;
 }
 .courseStatus {
   display: flex;
   gap: 15px;
+  overflow: visible !important;
 }
 .course-card {
   width: 200px;
@@ -413,6 +446,8 @@ export default {
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: visible;
+  z-index: 1;
 }
 .course-card h4 {
   margin-top: 30px;
@@ -470,6 +505,7 @@ export default {
   justify-content: center;
   align-items: center;
   cursor: default;
+  z-index: 9999;
 }
 .plus-icon:hover {
   box-shadow: 0 0 10px rgba(246, 181, 27, 0.8);
@@ -554,6 +590,7 @@ input {
   border: none;
   margin-left: 0.5rem;
   cursor: pointer;
+  z-index: 9999;
 }
 .minus-mini {
   height: 32px;
@@ -602,13 +639,48 @@ button[disabled] {
 }
 .dropdown-menu {
   position: absolute;
-  top: 30px;
-  right: 12px;
-  background: white;
+  top: -10px;
+  right: 15px;
+  color: white;
   border: 1px solid #ccc;
   padding: 5px 10px;
-  z-index: 100;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.dropdown-menu button {
+  background-color: #f6b51b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-menu button:hover {
+  background-color: #e0a419;
+}
+.close-button {
+  margin-top: 1rem;
+  background-color: #f6b51b;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.close-button:hover {
+  background-color: #e0a419;
 }
 
 </style>

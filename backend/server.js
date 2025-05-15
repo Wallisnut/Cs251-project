@@ -387,11 +387,13 @@ app.post(
   "/add-course",
   authenticate(["lecturer", "admin"]),
   async (req, res) => {
+    const JoinCode = generateJoinCode();
+    console.log("Generated join code:", JoinCode);
     const { courseName, courseId, courseHour, startTime, endTime, courseDate } =
       req.body;
     const lecturerId =
       req.user.role === "lecturer" ? req.user.id : req.body.lecturerId;
-
+   
     if (
       !courseName ||
       !courseId ||
@@ -402,16 +404,15 @@ app.post(
     ) {
       return res.status(400).json({ message: "All fields are required" });
     }
-
+    
     let connection;
     try {
       connection = await pool.promise().getConnection();
       await connection.beginTransaction();
-    
-      const joinCode = generateJoinCode();
+      
       const [courseResult] = await connection.query(
         "INSERT INTO Course (CourseID, CourseName, Course_Hour, StartTime, EndTime, CourseDate,JoinCode) VALUES (? , ? , ? ,?, ?, ?, ?)",
-        [courseId, courseName, courseHour, startTime, endTime, courseDate, joinCode],
+        [courseId, courseName, courseHour, startTime, endTime, courseDate, JoinCode],
       );
       console.log("Course insert result:", courseResult);
 
@@ -442,14 +443,22 @@ app.post(
       );
       console.log("Teach_IN insert result:", teachInResult);
 
+
       await connection.commit();
+      console.log("Generated join code:", JoinCode);
+      console.log("Actual lecturer ID:", actualLecturerId);
+
       res.status(201).json({
         message: "Course added successfully",
         lecturerAssigned: actualLecturerId,
+        joinCode: JoinCode
       });
     } catch (error) {
       if (connection) {
         await connection.rollback();
+      }
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ message: 'Course ID already exists' });
       }
       console.error("Error in /add-course:", error);
       res.status(500).json({
@@ -464,11 +473,21 @@ app.post(
     }
   },
 );
-
+app.get("/course/:courseId/join-code", authenticate(["lecturer", "admin"]), async (req, res) => {
+  const courseId = req.params.courseId;
+  try {
+    const [rows] = await pool.promise().query("SELECT JoinCode FROM Course WHERE CourseID = ?", [courseId]);
+    if (!rows.length) return res.status(404).json({ message: "Course not found" });
+    res.json({ joinCode: rows[0].JoinCode });
+  } catch (err) {
+    console.error("Error fetching join code:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 app.post("/join-course", authenticate(["student"]), (req, res) => {
-  const { studentId, joinCode } = req.body;
+  const { studentId, JoinCode } = req.body;
 
-  if (!studentId || !joinCode) {
+  if (!studentId || !JoinCode) {
     return res
       .status(400)
       .json({ message: "Student ID and join code are required" });
@@ -476,7 +495,7 @@ app.post("/join-course", authenticate(["student"]), (req, res) => {
 
   pool.query(
     "SELECT CourseID FROM Course WHERE JoinCode = ?",
-    [joinCode],
+    [JoinCode],
     (err, courseResults) => {
       if (err) {
         console.error("Database error:", err);
@@ -545,6 +564,37 @@ app.post("/join-course", authenticate(["student"]), (req, res) => {
       );
     }
   );
+});
+app.get("/teach-in", authenticate(["lecturer", "admin"]), async (req, res) => {
+  try {
+    let lecturerId;
+
+    if (req.user.role === "lecturer") {
+      const [lecturerRows] = await pool.promise().query(
+        "SELECT LecturerID FROM Lecturer WHERE UserID = ?",
+        [req.user.id]
+      );
+
+      if (!lecturerRows.length) {
+        return res.status(404).json({ message: "Lecturer not found" });
+      }
+
+      lecturerId = lecturerRows[0].LecturerID;
+    } else {
+      const [rows] = await pool.promise().query("SELECT * FROM Teach_IN");
+      return res.json(rows);
+    }
+
+    const [teachInRows] = await pool.promise().query(
+      "SELECT * FROM Teach_IN WHERE LecturerID = ?",
+      [lecturerId]
+    );
+
+    res.json(teachInRows);
+  } catch (err) {
+    console.error("Error in /teach-in:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
 });
 
 app.get(
