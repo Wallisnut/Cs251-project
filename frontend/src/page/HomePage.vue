@@ -21,6 +21,7 @@
             v-for="course in todayCourses"
             :key="course.courseId"
             :class="getCourseCardClass(course.status)"
+            @click="goToAttendance(course.courseId)"
           >
             <div class="status">
               <span
@@ -208,10 +209,9 @@ export default {
       const headers = { Authorization: token };
 
       try {
-        const enrolledRes = await axios.get(
-          `/join-course/${this.studentId}`,
-          { headers }
-        );
+        const enrolledRes = await axios.get(`/join-course/${this.studentId}`, {
+          headers,
+        });
         const enrolled = enrolledRes.data;
         this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
 
@@ -256,6 +256,9 @@ export default {
       } catch (error) {
         console.error("Error reloading courses:", error);
       }
+    },
+    goToAttendance(courseId) {
+      this.$router.push({ name: "StudentAttd", params: { courseId } });
     },
   },
 };
