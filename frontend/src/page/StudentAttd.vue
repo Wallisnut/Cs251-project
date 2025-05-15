@@ -13,7 +13,7 @@
     <div class="content flex-grow-1">
       <div class="container">
         <div class="text-center my-3">
-          <button class="btn btn-primary px-5">CS251</button>
+          <button class="btn btn-primary px-5">{{ $route.params.courseId }}</button>
         </div>
         <table class="table table-bordered text-center">
           <thead>
