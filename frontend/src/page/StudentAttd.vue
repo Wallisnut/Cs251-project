@@ -50,7 +50,7 @@
                   attendanceHistory.find(h => h.date === row.date)?.status === 'Present'
                   ? 'มาแล้ว'
                   : 'ยัง'
-               }}  
+               }}
               </td>
             </tr>
           </tbody>
