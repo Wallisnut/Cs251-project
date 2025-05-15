@@ -19,6 +19,7 @@
             v-for="course in todayCourses"
             :key="course.courseId"
             :class="getCourseCardClass(course.status)"
+            @click="goToAttendance(course.courseId)"
             style="position: relative"
           >
             <div class="dots" @click="toggleDropdown(course.courseId)">⋮</div>
@@ -400,7 +401,10 @@ export default {
     },
     removeScheduleRow(index) {
       this.newCourse.schedules.splice(index, 1);
-    }
+    },
+    goToAttendance(courseId) {
+      this.$router.push({ name: "StudentAttd", params: { courseId } });
+    },
 
   },
 };
