@@ -370,6 +370,9 @@ app.delete("/delete-student/:id", authenticate(["admin"]), (req, res) => {
   });
 });
 
+function generateJoinCode(length = 6) {
+  return Math.random().toString(36).substring(2, 2 + length).toUpperCase();
+}
 app.post(
   "/add-course",
   authenticate(["lecturer", "admin"]),
@@ -394,10 +397,11 @@ app.post(
     try {
       connection = await pool.promise().getConnection();
       await connection.beginTransaction();
-
+    
+      const joinCode = generateJoinCode();
       const [courseResult] = await connection.query(
-        "INSERT INTO Course (CourseID, CourseName, Course_Hour, StartTime, EndTime, CourseDate) VALUES (? , ? , ? ,?, ?, ?)",
-        [courseId, courseName, courseHour, startTime, endTime, courseDate],
+        "INSERT INTO Course (CourseID, CourseName, Course_Hour, StartTime, EndTime, CourseDate,JoinCode) VALUES (? , ? , ? ,?, ?, ?, ?)",
+        [courseId, courseName, courseHour, startTime, endTime, courseDate, joinCode],
       );
       console.log("Course insert result:", courseResult);
 
@@ -452,29 +456,31 @@ app.post(
 );
 
 app.post("/join-course", authenticate(["student"]), (req, res) => {
-  const { studentId, courseId } = req.body;
+  const { studentId, joinCode } = req.body;
 
-  if (!studentId || !courseId) {
+  if (!studentId || !joinCode) {
     return res
       .status(400)
-      .json({ message: "Student ID and course ID are required" });
+      .json({ message: "Student ID and join code are required" });
   }
 
   pool.query(
-    "SELECT 1 FROM Course WHERE CourseID = ?",
-    [courseId],
-    (err, results) => {
+    "SELECT CourseID FROM Course WHERE JoinCode = ?",
+    [joinCode],
+    (err, courseResults) => {
       if (err) {
         console.error("Database error:", err);
         return res.status(500).json({
-          message: "Database error checking course",
+          message: "Database error checking join code",
           error: err.message,
         });
       }
 
-      if (results.length === 0) {
-        return res.status(404).json({ message: "Course not found" });
+      if (courseResults.length === 0) {
+        return res.status(404).json({ message: "Invalid join code" });
       }
+
+      const courseId = courseResults[0].CourseID;
 
       pool.query(
         "SELECT 1 FROM Student WHERE StudentID = ?",
@@ -492,22 +498,42 @@ app.post("/join-course", authenticate(["student"]), (req, res) => {
             return res.status(404).json({ message: "Student not found" });
           }
 
-          const query =
-            "INSERT INTO Enrollment (StudentID, CourseID, Date_Enroll) VALUES (?, ?, CURDATE())";
-          pool.query(query, [studentId, courseId], (err) => {
-            if (err) {
-              console.error("Database error:", err);
-              return res.status(500).json({
-                message: "Failed to join course",
-                error: err.message,
+          pool.query(
+            "SELECT 1 FROM Enrollment WHERE StudentID = ? AND CourseID = ?",
+            [studentId, courseId],
+            (err, existing) => {
+              if (err) {
+                console.error("Database error:", err);
+                return res.status(500).json({
+                  message: "Database error checking enrollment",
+                  error: err.message,
+                });
+              }
+
+              if (existing.length > 0) {
+                return res
+                  .status(409)
+                  .json({ message: "Already enrolled in this course" });
+              }
+
+              const query =
+                "INSERT INTO Enrollment (StudentID, CourseID, Date_Enroll) VALUES (?, ?, CURDATE())";
+              pool.query(query, [studentId, courseId], (err) => {
+                if (err) {
+                  console.error("Database error:", err);
+                  return res.status(500).json({
+                    message: "Failed to join course",
+                    error: err.message,
+                  });
+                }
+
+                res.status(201).json({ message: "Joined course successfully", courseId });
               });
             }
-
-            res.status(201).json({ message: "Joined course successfully" });
-          });
-        },
+          );
+        }
       );
-    },
+    }
   );
 });
 

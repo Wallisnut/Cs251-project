@@ -56,7 +56,27 @@
         </div>
       </div>
 
-      <div class="plus-icon">+</div>
+      <div class="plus-icon" @click="showModal = true">+</div>
+      <!-- <button @click="showJoinModal = true" class="plus-button">+</button> -->
+      <div v-if="showModal" class="modal-overlay">
+        <div class="modal-content">
+          <h3>Join Course</h3>
+
+          <input
+            type="text"
+            v-model="joinCodeInput"
+            placeholder="Enter Join Code"
+            class="join-input"
+          />
+
+          <div class="modal-actions">
+            <button @click="confirmJoin" class="confirm-button">Join</button>
+            <button @click="cancelJoin" class="cancel-button">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+
     </div>
   </div>
 </template>
@@ -73,6 +93,8 @@ export default {
       todayCourses: [],
       enrolledCourseIds: [],
       availableCourses: [],
+      showModal: false,
+      joinCodeInput: "",
     };
   },
   async mounted() {
@@ -147,6 +169,34 @@ export default {
       if (status === "Upcoming") return "#FFCD29";
       if (status === "Canceled") return "#FF2929";
       return "#000";
+    },
+    cancelJoin() {
+      this.joinCodeInput = "";
+      this.showModal = false;
+    },
+    confirmJoin() {
+      if (!this.joinCodeInput) {
+        alert("Please enter a join code.");
+        return;
+      }
+
+      this.submitJoinCode();
+    },
+    async submitJoinCode() {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: token };
+
+      try {
+        await axios.post("/join-course", {
+          studentId: this.studentId,
+          joinCode: this.joinCodeInput,
+        }, { headers });
+
+        alert("Joined successfully!");
+        this.showJoinModal = false;
+      } catch (err) {
+        alert("Invalid join code or already joined.");
+      }
     },
   },
 };
@@ -245,5 +295,42 @@ export default {
 }
 .plus-icon:hover {
   box-shadow: 0 0 10px rgba(246, 181, 27, 0.8);
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  width: 300px;
+  border-radius: 10px;
+  text-align: center;
+}
+.modal-buttons button {
+  margin: 0 0.5rem;
+}
+
+
+.join-input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+.modal-actions button {
+  margin: 5px;
+  padding: 10px 15px;
+  border: none;
+  cursor: pointer;
 }
 </style>
