@@ -8,6 +8,7 @@ import NotiFication from '../page/NotiFicationPage.vue'
 import Summary from '../page/Summary.vue';
 import PersonalSummary from '../page/PersonalSummary.vue';
 import StudentAttd from '../page/StudentAttd.vue';
+import LecturerAttd from '../page/LecturerAttd.vue';
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -22,6 +23,7 @@ const routes = [
   { path: '/course_summary', name: 'course_summary', component: Summary },
   { path: '/personal_summary', name: 'personal_summary', component: PersonalSummary },
   { path: '/stdattd/:courseId', name: 'StudentAttd',component: StudentAttd},
+  { path: '/lectattd/:courseId', name: 'LecturerAttd',component: LecturerAttd} 
 ];
 
 export default createRouter({
