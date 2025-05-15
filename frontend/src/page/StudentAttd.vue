@@ -45,7 +45,13 @@
                   </div>
                 </template>
               </td>
-              <td>{{ row.teacher }}</td>
+              <td>
+                {{
+                  attendanceHistory.find(h => h.date === row.date)?.status === 'Present'
+                  ? 'มาแล้ว'
+                  : 'ยัง'
+               }}  
+              </td>
             </tr>
           </tbody>
         </table>
@@ -59,15 +65,16 @@ import axios from 'axios';
 
 export default {
   async mounted() {
-    this.fetchUserInfo();
-    //this.fetchAttendanceData(); 
-    this.fetchCourseData(); 
-  },
+  await this.fetchUserInfo();
+  await this.fetchCourseData();
+  await this.fetchAttendanceHistory();
+},
   data() {
     return {
       courseId: this.$route.params.courseId,
       studentId: null,
       attendance: [], // Holds attendance data
+      attendanceHistory: [],
       selectedFile: null,
       checkedDate: null,
       course: {
@@ -144,32 +151,44 @@ export default {
     }
   },
 
-  generateAttendanceRows() {
-  const startDate = new Date(this.course.schedule.date); // e.g., 2025-05-12
-  const today = new Date();
+  async fetchAttendanceHistory() {
+  try {
+    const res = await axios.get(`/attendance-history/${this.studentId}`, {
+      headers: {
+        'user-token': localStorage.getItem('token'),
+      }
+    });
+    this.attendanceHistory = res.data.attendance;
+  } catch (err) {
+    console.error('Failed to fetch attendance history:', err);
+  }
+},
 
+  generateAttendanceRows() {
+  const startDate = new Date(this.course.schedule.date);
+  const today = new Date();
   const rows = [];
 
   let loopDate = new Date(startDate);
 
   while (loopDate <= today) {
-    const isToday = loopDate.toDateString() === today.toDateString();
-    const currentTime = new Date().toTimeString().slice(0, 5); // "HH:MM"
-    const canCheckIn = isToday &&
-      currentTime >= this.course.schedule.startTime &&
-      currentTime <= this.course.schedule.endTime;
+    const dateStr = loopDate.toISOString().slice(0, 10);
+
+    const matchedHistory = this.attendanceHistory.find(
+      record => record.courseId === this.courseId && record.date === dateStr
+    );
 
     rows.push({
-      date: loopDate.toISOString().slice(0, 10),
-      canCheckIn,
-      teacher: this.course.lecturers.map(l => `${l.firstName} ${l.lastName}`).join(', ')
+      date: dateStr,
+      canCheckIn: this.isAttendanceAvailable(dateStr, this.course.schedule.startTime, this.course.schedule.endTime),
+      teacher: matchedHistory ? matchedHistory.status : "unchecked"
     });
 
-    loopDate.setDate(loopDate.getDate() + 7); // Weekly schedule
+    loopDate.setDate(loopDate.getDate() + 7);
   }
 
   this.attendance = rows;
-  },
+},
 
   handleFileUpload(index, event) {
     const file = event.target.files[0]; // Get the selected file
@@ -212,6 +231,7 @@ export default {
     // Clear the previously selected file
     this.attendance[index].selectedFile = null;
   },
+
 
   logout() {
       alert("Logging out...");
