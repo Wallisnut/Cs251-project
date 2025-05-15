@@ -41,8 +41,7 @@ CREATE TABLE Course (
     Course_Hour INT NOT NULL,
     StartTime TIME NOT NULL,
     CourseDate DATE NOT NULL,
-    EndTime TIME NOT NULL,
-    JoinCode VARCHAR(10) UNIQUE;
+    EndTime TIME NOT NULL
 );		
 
 CREATE TABLE Enrollment (
@@ -59,6 +58,8 @@ CREATE TABLE Attendance (
     StudentID VARCHAR(10) NOT NULL,
     CourseID VARCHAR(20) NOT NULL,
     Date_Attend DATE NOT NULL,
+    LeaveFile VARCHAR(255) NULL,
+    ApprovalStatus ENUM('approved', 'rejected', 'pending') DEFAULT 'pending',
     Status ENUM('present', 'late', 'absent') NOT NULL,
     FOREIGN KEY (StudentID) REFERENCES Student(StudentID) ON DELETE CASCADE,
     FOREIGN KEY (CourseID) REFERENCES Course(CourseID) ON DELETE CASCADE
