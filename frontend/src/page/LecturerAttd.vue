@@ -1,15 +1,14 @@
 <template>
-  <div>
-    <div class="d-flex">
-      <!-- Sidebar -->
-      <div class="sidebar d-flex flex-column">
-        <h2 class="fw-bold">Menu</h2>
-        <router-link to="/home" class="menu-item active">🏠 Home</router-link>
-        <router-link to="/notification" class="menu-item">🔔 Notification</router-link>
-        <router-link to="/summary" class="menu-item">📊 Summary</router-link>
-        <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
-      </div>
+  <div class="d-flex">
+    <!-- Sidebar -->
+    <div class="sidebar d-flex flex-column">
+      <h2 class="fw-bold">Menu</h2>
+      <router-link to="/home" class="menu-item active">🏠 Home</router-link>
+      <router-link to="/notification" class="menu-item">🔔 Notification</router-link>
+      <router-link to="/summary" class="menu-item">📊 Summary</router-link>
+      <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
+
     <!-- Content -->
     <div class="content flex-grow-1">
       <div class="container">
@@ -21,10 +20,13 @@
             <tr>
               <th>ชื่อ-นามสกุล</th>
               <th>รหัสนักศึกษา</th>
-              <th>สถานะ</th>
+              <th>{{ todayStr }}</th>
             </tr>
           </thead>
           <tbody>
+            <tr v-if="attendance.length === 0">
+              <td colspan="3">No attendance data available</td>
+            </tr>
             <tr v-for="(row, index) in attendance" :key="index">
               <td>{{ row.FirstName }} {{ row.LastName }}</td>
               <td>{{ row.StudentID }}</td>
@@ -33,7 +35,7 @@
                   type="radio"
                   v-model="attendance[index].isChecked"
                   :value="true"
-                  :disabled="!isAttendanceAvailable(row.date, row.startTime, row.endTime)"
+                  :disabled="!isAttendanceAvailable()"
                   @change="recordAttendance(index)"
                 />
               </td>
@@ -52,6 +54,7 @@ export default {
   data() {
     return {
       attendance: [], // Holds attendance data
+      todayStr: "", // Holds today's date
     };
   },
   methods: {
@@ -71,6 +74,15 @@ export default {
         console.error("Error fetching students:", error);
         alert("ไม่สามารถดึงข้อมูลนักเรียนได้");
       }
+    },
+    addMockRow() {
+      // Add a mock row to the attendance array
+      this.attendance.push({
+        FirstName: "Mock",
+        LastName: "Student",
+        StudentID: "1234567890",
+        isChecked: false, // Default unchecked
+      });
     },
     async recordAttendance(index) {
       const row = this.attendance[index];
@@ -95,14 +107,14 @@ export default {
       }
     },
     isAttendanceAvailable(date, startTime, endTime) {
-  // Use the parameters to determine if attendance is available
-  const currentDate = new Date();
-  const courseStart = new Date(`${date}T${startTime}`);
-  const courseEnd = new Date(`${date}T${endTime}`);
+      // Use the parameters to determine if attendance is available
+      const currentDate = new Date();
+      const courseStart = new Date(`${date}T${startTime}`);
+      const courseEnd = new Date(`${date}T${endTime}`);
 
-  // Check if the current time is within the course's start and end time
-  return currentDate >= courseStart && currentDate <= courseEnd;
-},
+      // Check if the current time is within the course's start and end time
+      return currentDate >= courseStart && currentDate <= courseEnd;
+    },
     logout() {
       localStorage.removeItem("token");
       this.$router.push("/login");
@@ -110,9 +122,19 @@ export default {
   },
   mounted() {
     this.fetchStudents(); // Fetch students when the component is mounted
+    this.addMockRow(); // Add a mock row for testing
+
+    // Set today's date
+    const today = new Date();
+    this.todayStr = today.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }); // Format: DD/MM/YYYY
   },
 };
 </script>
+
 
 <style scoped>
 .sidebar {
@@ -147,6 +169,12 @@ export default {
   margin-bottom: 0;
 }
 .content {
+  display: flex;
+  flex-direction: column;
   padding: 20px;
+}
+
+.container {
+  display: block;
 }
 </style>
