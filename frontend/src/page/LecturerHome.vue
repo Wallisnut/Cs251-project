@@ -21,14 +21,31 @@
           <div
             class="course-card"
             v-for="course in todayCourses"
-            :key="course.courseId"
+            :key="'today-' + course.courseId"
             :class="getCourseCardClass(course.status)"
             style="position: relative"
           >
-            <div class="dots" @click="toggleDropdown(course.courseId)">⋮</div>
-            <div v-if="dropdownVisible === course.courseId" class="dropdown-menu">
-              <button @click="showJoinCode(course)">Join Code</button>
-              <button @click="cancelClass(course)">Cancel Class</button>
+            <div class="dots" @click="toggleDropdown(course.courseId, 'today')">⋮</div>
+            <div
+              v-if="dropdownVisible === `today-${course.courseId}`"
+              class="dropdown-menu"
+            >
+              <button @click="showJoinCodeallcourse(course)">Join Code</button>
+              <button 
+                v-if="course.status !== 'Canceled'" 
+                @click="cancelClass(course)"
+              >
+                Cancel Class
+              </button>
+              
+              <button 
+                v-else 
+                disabled 
+                style="opacity: 0.6; cursor: not-allowed;"
+              >
+                Already Canceled
+              </button>
+
             </div>
 
             <div class="status">
@@ -46,12 +63,15 @@
       <div class="all-courses" style="display: flex; flex-wrap: wrap; gap: 1rem">
         <div
           v-for="course in allCourses"
-          :key="course.courseId"
+          :key="'all-' + course.courseId"
           class="course-card"
-          style="background: #b9b9b9; position: relative;z-index: 1;"
+          style="background: #b9b9b9; position: relative;"
         >
-          <div class="dots" @click="toggleDropdown(course.courseId)">⋮</div>
-          <div v-if="dropdownVisible === course.courseId" class="dropdown-menu" ref="dropdown">
+          <div class="dots" @click="toggleDropdown(course.courseId, 'all')">⋮</div>
+          <div
+            v-if="dropdownVisible === `all-${course.courseId}`"
+            class="dropdown-menu"
+          >
             <button @click="showJoinCodeallcourse(course)">Join Code</button>
           </div>
 
@@ -205,11 +225,15 @@ export default {
       if (course.status !== "Canceled") {
         course.status = "Canceled";
       }
+      if (course.status === 'Canceled') {
+        alert("This class is already canceled.");
+        return;
+      }
       this.dropdownVisible = null;
     },
-
-    toggleDropdown(courseId) {
-      this.dropdownVisible = this.dropdownVisible === courseId ? null : courseId;
+    toggleDropdown(courseId, section) {
+      const id = `${section}-${courseId}`;
+      this.dropdownVisible = this.dropdownVisible === id ? null : id;
     },
     onClickOutsideDropdown(event) {
 
