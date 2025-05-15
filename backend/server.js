@@ -507,6 +507,35 @@ app.post("/join-course", authenticate(["student"]), (req, res) => {
     },
   );
 });
+app.get('/my-courses', authenticate(['lecturer']), async (req, res) => {
+  try {
+    const lecturerUserId = req.user.id;
+
+    const [lecturers] = await pool.promise().query(
+      'SELECT LecturerID FROM Lecturer WHERE UserID = ?',
+      [lecturerUserId]
+    );
+
+    if (!lecturers.length) {
+      return res.status(404).json({ message: 'Lecturer not found' });
+    }
+
+    const lecturerId = lecturers[0].LecturerID;
+
+    const [courses] = await pool.promise().query(
+      `SELECT c.CourseID, c.CourseName
+       FROM Course c
+       JOIN Teach_IN t ON c.CourseID = t.CourseID
+       WHERE t.LecturerID = ?`,
+      [lecturerId]
+    );
+
+    res.json(courses);
+  } catch (error) {
+    console.error('Error fetching courses for lecturer:', error);
+    res.status(500).json({ message: 'Failed to fetch courses', error: error.message });
+  }
+});
 
 app.get(
   "/course_and_lecturer/:courseId",

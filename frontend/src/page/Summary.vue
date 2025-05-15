@@ -1,15 +1,23 @@
 <template>
-  <div class="h-screen flex flex-row bg-gray-100 overflow-hidden">
+  <div class="d-flex vh-100">
     <!-- Sidebar -->
-    <div class="sidebar">
-      <div>
-        <h2 class="font-bold text-2xl mb-8">Menu</h2>
-        <router-link to="/home" class="menu-item">🏠 Home</router-link>
-        <router-link to="/notification" class="menu-item">🔔 Notification</router-link>
-        <router-link to="/summary" class="menu-item active">📊 Summary</router-link>
+    <nav style="width: 15%;" class="w-22 bg-white text-black d-flex flex-column p-4">
+      <h2 class="mb-5">Menu</h2>
+      <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item mb-2">
+          <router-link to="/admin/home" class="menu-item nav-link text-black">Home</router-link>
+        </li>
+        <li class="nav-item mb-2">
+          <router-link to="/notification" class="menu-item nav-link text-black">Notification</router-link>
+        </li>
+        <li class="nav-item mb-2">
+          <router-link to="/course_summary" class="menu-item active nav-link">Summary</router-link>
+        </li>
+      </ul>
+      <div class="mt-auto">
+        <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>
       </div>
-      <div class="menu-item" @click="logout">⬅️ Log Out</div>
-    </div>
+    </nav>
 
     <!-- Main content wrapper -->
     <div class="main">
@@ -19,25 +27,19 @@
 
         <!-- Course Dropdown -->
         <div class="dropdown">
-          <select class="border border-gray-300 rounded-lg px-4 py-2">
-            <option>CS251</option>
-          </select>
+      <select v-model="selectedCourseId" @change="onCourseChange" class="border border-gray-300 rounded-lg px-4 py-2">
+        <option v-for="course in courses" :key="course.CourseID" :value="course.CourseID">
+          {{ course.CourseName }}
+        </option>
+      </select>
+
         </div>
-        <canvas id="attendanceChart" class="max-w-full max-h-96 mb-10"></canvas>
+        <canvas id="attendanceChart" class="max-w-80 max-h-80 mb-10"></canvas>
 
         <!-- Table -->
         <div>
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-bold">รายละเอียด</h2>
-            <div class="relative">
-              <input
-                type="text"
-                v-model="search"
-                placeholder="Search"
-                class="border border-gray-300 rounded-full px-4 py-2 pl-10 w-64"
-              />
-              <span class="absolute left-3 top-2.5 text-gray-500">🔍</span>
-            </div>
           </div>
 
           <table class="min-w-full text-sm border-t border-gray-200">
@@ -48,7 +50,6 @@
                 <th class="py-3 px-4 text-left">เข้าเรียน</th>
                 <th class="py-3 px-4 text-left">ลา</th>
                 <th class="py-3 px-4 text-left">ขาด</th>
-                <th class="py-3 px-4 text-left">รายละเอียด</th>
               </tr>
             </thead>
             <tbody>
@@ -62,7 +63,6 @@
                 <td class="py-2 px-4">{{ record.PresentClasses }}</td>
                 <td class="py-2 px-4">{{ record.LateClasses }}</td>
                 <td class="py-2 px-4">{{ record.AbsentClasses }}</td>
-                <td class="py-2 px-4 text-blue-500 cursor-pointer">more...</td>
               </tr>
             </tbody>
           </table>
@@ -74,31 +74,39 @@
 
 <script>
 import axios from "axios";
-import { Chart, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
 
-Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 export default {
   name: "AttendanceSummary",
   data() {
     return {
+      courses: [],
+      selectedCourseId: null,
       attendanceData: [],
       loading: true,
       error: null,
       search: "",
+      useMock: true,  // สลับใช้ mock หรือไม่
+    mockAttendanceData: [
+      { StudentID: 'S001', StudentFirstName: 'ณัฐชยา', StudentLastName: 'ทาศรี', PresentClasses: 8, AbsentClasses: 1, LateClasses: 0 },
+      { StudentID: 'S002', StudentFirstName: 'สมชาย', StudentLastName: 'ใจดี', PresentClasses: 7, AbsentClasses: 2, LateClasses: 1 },
+      { StudentID: 'S003', StudentFirstName: 'สุนิสา', StudentLastName: 'สดใส', PresentClasses: 9, AbsentClasses: 0, LateClasses: 0 },
+    ],
     };
   },
-  computed: {
-    filteredData() {
-      const keyword = this.search.toLowerCase();
-      return this.attendanceData.filter(
-        (item) =>
-          item.StudentID.includes(keyword) ||
-          item.StudentFirstName.toLowerCase().includes(keyword) ||
-          item.StudentLastName.toLowerCase().includes(keyword)
-      );
-    },
+computed: {
+  filteredData() {
+    const keyword = this.search.toLowerCase();
+    return this.attendanceData.filter(
+      (item) =>
+        item.StudentID.includes(keyword) ||
+        item.StudentFirstName.toLowerCase().includes(keyword) ||
+        item.StudentLastName.toLowerCase().includes(keyword)
+    );
   },
+},
   methods: {
     logout() {
       // add logout logic here
@@ -131,7 +139,7 @@ export default {
               backgroundColor: '#fca5a5', // soft red
             },
             {
-              label: 'Late',
+              label: 'Leave',
               data: late,
               backgroundColor: '#67e8f9', // light blue
             },
@@ -156,22 +164,59 @@ export default {
         },
       });
     },
+      loadCourses() {
+    axios.get('/all-courses')
+      .then(res => {
+        this.courses = res.data;
+        if (this.courses.length > 0) {
+          this.selectedCourseId = this.courses[0].CourseID;
+          this.loadAttendance(this.selectedCourseId);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+      });
   },
-  created() {
-    const courseId = this.$route.params.courseId;
+    onCourseChange() {
+    if (this.selectedCourseId) {
+      this.loadAttendance(this.selectedCourseId);
+    }},
+  loadAttendance(courseId) {
+    this.loading = true;
+    axios.get(`/attendance-report/${courseId}`)
+      .then(res => {
+        this.attendanceData = res.data;
+      })
+      .catch(err => {
+        this.error = err.response?.data?.message || "Failed to load attendance report.";
+      })
+      .finally(() => {
+        this.loading = false;
+      });
+  }
+
+  },
+  created(){
+    this.loadCourses();
+  const courseId = this.$route.params.courseId;
+
+  if (this.useMock) {
+    this.attendanceData = this.mockAttendanceData;
+    this.loading = false;
+  } else {
     axios
       .get(`/attendance-report/${courseId}`)
       .then((res) => {
         this.attendanceData = res.data;
       })
       .catch((err) => {
-        this.error =
-          err.response?.data?.message || "Failed to load attendance report.";
+        this.error = err.response?.data?.message || "Failed to load attendance report.";
       })
       .finally(() => {
         this.loading = false;
       });
-  },
+  }
+},
     watch: {
     attendanceData(newData) {
       if (newData.length > 0) {
@@ -216,6 +261,9 @@ export default {
 .main {
     flex: 1;
     padding: 40px;
+    background-color: #f5f5f5;
+    border: 6px solid white;
+    border-radius: 20px;
 }
 canvas {
   background: #fff;

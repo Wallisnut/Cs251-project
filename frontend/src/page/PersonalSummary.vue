@@ -27,7 +27,7 @@
       </div>
 
       <div v-for="(group, index) in groupedByCourse" :key="index" class="summary-card">
-        <h2 class="text-xl font-bold mb-2">{{ group.course }}</h2>
+        <h2 class="text-xl font-bold">{{ group.courseName || group.courseId }}</h2>
 
         <div class="status-tags">
           <span class="badge present">เช็กชื่อ {{ group.present }}</span>
@@ -35,10 +35,23 @@
           <span class="badge absent">ขาดเรียน {{ group.absent }}</span>
         </div>
 
-        <!-- Progress bar -->
         <div class="attendance-bar">
-          <div class="attendance-fill" :style="{ width: group.attendancePercentage + '%' }"></div>
-          <div class="attendance-badge" :style="{ left: group.attendancePercentage + '%' }">
+          <div
+            class="attendance-fill present-fill"
+            :style="{ width: group.presentPercentage + '%' }"
+          ></div>
+          <div
+            class="attendance-fill late-fill"
+            :style="{ width: group.latePercentage + '%' , left: group.presentPercentage + '%' }"
+          ></div>
+          <div
+            class="attendance-fill absent-fill"
+            :style="{ width: group.absentPercentage + '%', left: group.presentPercentage + group.latePercentage + '%' }"
+          ></div>
+          <div
+            class="attendance-badge"
+            :style="{ left: group.presentPercentage + group.latePercentage + group.absentPercentage + '%' }"
+          >
             {{ group.attendancePercentage }}%
           </div>
         </div>
@@ -48,30 +61,33 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axios from "axios";
 
 export default {
   data() {
     return {
-      studentId: '',
+      studentId: "",
       attendance: [],
+      coursesMap: {}, // เก็บชื่อวิชาตาม CourseID
     };
   },
   computed: {
     groupedByCourse() {
+      // รวม attendance แยกตาม CourseID + คำนวณ % ของสถานะต่าง ๆ
       const groups = {};
       this.attendance.forEach((record) => {
         if (!groups[record.CourseID]) {
           groups[record.CourseID] = {
-            course: record.CourseID,
+            courseId: record.CourseID,
+            courseName: this.coursesMap[record.CourseID] || null,
             present: 0,
             late: 0,
             absent: 0,
           };
         }
-        if (record.Status === 'present') groups[record.CourseID].present++;
-        else if (record.Status === 'late') groups[record.CourseID].late++;
-        else if (record.Status === 'absent') groups[record.CourseID].absent++;
+        if (record.Status === "present") groups[record.CourseID].present++;
+        else if (record.Status === "late") groups[record.CourseID].late++;
+        else if (record.Status === "absent") groups[record.CourseID].absent++;
       });
 
       return Object.values(groups).map((group) => {
@@ -80,30 +96,38 @@ export default {
         return {
           ...group,
           attendancePercentage,
+          presentPercentage: total > 0 ? (group.present / total) * 100 : 0,
+          latePercentage: total > 0 ? (group.late / total) * 100 : 0,
+          absentPercentage: total > 0 ? (group.absent / total) * 100 : 0,
         };
       });
     },
   },
   mounted() {
-    this.studentId = localStorage.getItem('studentId');
+    this.studentId = localStorage.getItem("studentId");
     if (!this.studentId) {
-      console.error('Missing studentId');
+      console.error("Missing studentId");
       return;
     }
 
-    axios
-      .get(`/attendance-history/${this.studentId}`)
-      .then((res) => {
-        this.attendance = res.data;
-      })
-      .catch((err) => {
-        console.error(err);
+    // ดึงข้อมูลรายวิชาทั้งหมดเพื่อแปลงชื่อ CourseID -> CourseName
+    axios.get("/all-courses").then((res) => {
+      res.data.forEach((course) => {
+        this.coursesMap[course.CourseID] = course.CourseName;
       });
+
+      // ดึงข้อมูล attendance ของนักศึกษา
+      return axios.get(`/attendance-history/${this.studentId}`);
+    }).then((res) => {
+      this.attendance = res.data;
+    }).catch((err) => {
+      console.error(err);
+    });
   },
   methods: {
     logout() {
-      localStorage.removeItem('studentId');
-      this.$router.push('/login');
+      localStorage.removeItem("studentId");
+      this.$router.push("/login");
     },
   },
 };
@@ -151,6 +175,7 @@ export default {
   border-radius: 999px;
   font-size: 14px;
   font-weight: bold;
+  user-select: none;
 }
 
 .present {
@@ -181,41 +206,32 @@ export default {
 .attendance-fill {
   position: absolute;
   height: 100%;
-  background-color: #000;
-  left: 0;
   top: 0;
   transition: width 0.5s ease;
+}
+
+.present-fill {
+  background-color: black;
+  left: 0;
+}
+
+.late-fill {
+  background-color: #ffc107;
+}
+
+.absent-fill {
+  background-color: #6c757d;
 }
 
 .attendance-badge {
   position: absolute;
   top: -30px;
   transform: translateX(-50%);
-  background-color: #000;
+  background-color: black;
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
   white-space: nowrap;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .sidebar {
-    display: none;
-  }
-
-  .main-content {
-    padding: 16px;
-  }
-
-  .attendance-bar {
-    height: 10px;
-  }
-
-  .attendance-badge {
-    top: -24px;
-    font-size: 10px;
-  }
 }
 </style>
