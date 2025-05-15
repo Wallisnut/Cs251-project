@@ -71,13 +71,19 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === "image/png" || file.mimetype === "image/jpeg") {
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" // .docx
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only PNG and JPEG files are allowed"));
+      cb(new Error("Only PNG, JPEG, PDF, and DOCX files are allowed"));
     }
   },
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
 app.post("/register", async (req, res) => {
