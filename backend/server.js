@@ -434,8 +434,10 @@ app.post(
       console.log("Teach_IN insert result:", teachInResult);
 
 
-      console.log("Generated join code:", JoinCode);
       await connection.commit();
+      console.log("Generated join code:", JoinCode);
+      console.log("Actual lecturer ID:", actualLecturerId);
+
       res.status(201).json({
         message: "Course added successfully",
         lecturerAssigned: actualLecturerId,
@@ -552,6 +554,37 @@ app.post("/join-course", authenticate(["student"]), (req, res) => {
       );
     }
   );
+});
+app.get("/teach-in", authenticate(["lecturer", "admin"]), async (req, res) => {
+  try {
+    let lecturerId;
+
+    if (req.user.role === "lecturer") {
+      const [lecturerRows] = await pool.promise().query(
+        "SELECT LecturerID FROM Lecturer WHERE UserID = ?",
+        [req.user.id]
+      );
+
+      if (!lecturerRows.length) {
+        return res.status(404).json({ message: "Lecturer not found" });
+      }
+
+      lecturerId = lecturerRows[0].LecturerID;
+    } else {
+      const [rows] = await pool.promise().query("SELECT * FROM Teach_IN");
+      return res.json(rows);
+    }
+
+    const [teachInRows] = await pool.promise().query(
+      "SELECT * FROM Teach_IN WHERE LecturerID = ?",
+      [lecturerId]
+    );
+
+    res.json(teachInRows);
+  } catch (err) {
+    console.error("Error in /teach-in:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
 });
 
 app.get(
