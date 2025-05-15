@@ -4,7 +4,9 @@
     <div class="sidebar d-flex flex-column">
       <h2 class="fw-bold">Menu</h2>
       <router-link to="/home" class="menu-item active">🏠 Home</router-link>
-      <router-link to="/notification" class="menu-item">🔔 Notification</router-link>
+      <router-link to="/notification" class="menu-item"
+        >🔔 Notification</router-link
+      >
       <router-link to="/summary" class="menu-item">📊 Summary</router-link>
       <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
@@ -66,12 +68,13 @@
           />
 
           <div class="modal-actions">
-            <button @click="confirmJoin" class="confirm-button">เข้าร่วม</button>
+            <button @click="confirmJoin" class="confirm-button">
+              เข้าร่วม
+            </button>
             <button @click="cancelJoin" class="cancel-button">ยกเลิก</button>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -97,59 +100,44 @@ export default {
     const headers = { Authorization: token };
     const now = new Date();
 
-    try {
-      const userInfo = await axios.get("/user-info", { headers });
-      this.studentId = userInfo.data.studentDetails.StudentID;
+    const allRes = await axios.get("/all-courses", { headers });
+    const allCourses = allRes.data;
 
-      const enrolledRes = await axios.get(
-        `/student-courses/${this.studentId}`,
-        { headers }
-      );
-      const enrolled = enrolledRes.data;
+    const joinedCourseIds = JSON.parse(
+      localStorage.getItem("joinedCourses") || "[]"
+    );
 
-      this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
+    const myCourses = allCourses.filter((c) =>
+      joinedCourseIds.includes(c.CourseID)
+    );
 
-      const allRes = await axios.get("/all-courses", { headers });
-      const rawCourses = allRes.data;
+    const withStatus = myCourses.map((c) => {
+      const start = new Date(`${c.CourseDate}T${c.StartTime}`);
+      const end = new Date(`${c.CourseDate}T${c.EndTime}`);
+      const isSameDay = (a, b) => a.toDateString() === b.toDateString();
+      const isToday = isSameDay(start, now);
 
-      const enrolledCourses = rawCourses.filter((c) =>
-        this.enrolledCourseIds.includes(c.CourseID)
-      );
+      let status = "";
+      if (isToday && now >= start && now <= end) status = "In Progress";
+      else if (isToday && now < start) status = "Upcoming";
+      else if (isToday && now > end) status = "Canceled";
 
-      const withStatus = enrolledCourses.map((c) => {
-        const start = new Date(`${c.CourseDate}T${c.StartTime}`);
-        const end = new Date(`${c.CourseDate}T${c.EndTime}`);
-        const isSameDay = (a, b) =>
-          a.getFullYear() === b.getFullYear() &&
-          a.getMonth() === b.getMonth() &&
-          a.getDate() === b.getDate();
-        const isToday = isSameDay(start, now);
-        let status = "";
-        if (isToday && now >= start && now <= end) status = "In Progress";
-        else if (isToday && now < start) status = "Upcoming";
-        else if (isToday && now > end) status = "Canceled";
-        return {
-          courseId: c.CourseID,
-          courseName: c.CourseName,
-          schedule: {
-            date: c.CourseDate,
-            startTime: c.StartTime,
-            endTime: c.EndTime,
-            dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
-          },
-          status,
-          isToday,
-        };
-      });
+      return {
+        courseId: c.CourseID,
+        courseName: c.CourseName,
+        schedule: {
+          date: c.CourseDate,
+          startTime: c.StartTime,
+          endTime: c.EndTime,
+          dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
+        },
+        status,
+        isToday,
+      };
+    });
 
-      this.allCourses = withStatus;
-      this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
-      this.availableCourses = rawCourses.filter(
-        (c) => !this.enrolledCourseIds.includes(c.CourseID)
-      );
-    } catch (err) {
-      console.error("Error loading data:", err);
-    }
+    this.allCourses = withStatus;
+    this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
   },
   methods: {
     logout() {
@@ -180,20 +168,93 @@ export default {
 
       this.submitJoinCode();
     },
+
     async submitJoinCode() {
       const token = localStorage.getItem("token");
       const headers = { Authorization: token };
 
       try {
-        await axios.post("/join-course", {
-          studentId: this.studentId,
-          joinCode: this.joinCodeInput,
-        }, { headers });
+        const userInfo = await axios.get("/user-info", { headers });
+        this.studentId = userInfo.data.studentDetails.StudentID;
+        const response = await axios.post(
+          "/join-course",
+          {
+            studentId: this.studentId,
+            joinCode: this.joinCodeInput,
+          },
+          { headers }
+        );
+
+        const joined = JSON.parse(
+          localStorage.getItem("joinedCourses") || "[]"
+        );
+        joined.push(response.data.courseId);
+        localStorage.setItem(
+          "joinedCourses",
+          JSON.stringify([...new Set(joined)])
+        );
 
         alert("Joined successfully!");
-        this.showJoinModal = false;
+        this.showModal = false;
+        this.reloadCourses(); // method นี้ไว้ refresh
       } catch (err) {
         alert("Invalid join code or already joined.");
+        console.error("Join failed:", err);
+      }
+    },
+
+    async reloadCourses() {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: token };
+
+      try {
+        const enrolledRes = await axios.get(
+          `/join-course/${this.studentId}`,
+          { headers }
+        );
+        const enrolled = enrolledRes.data;
+        this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
+
+        const allRes = await axios.get("/all-courses", { headers });
+        const rawCourses = allRes.data;
+
+        const now = new Date();
+        const enrolledCourses = rawCourses.filter((c) =>
+          this.enrolledCourseIds.includes(c.CourseID)
+        );
+
+        const withStatus = enrolledCourses.map((c) => {
+          const start = new Date(`${c.CourseDate}T${c.StartTime}`);
+          const end = new Date(`${c.CourseDate}T${c.EndTime}`);
+          const isSameDay = (a, b) =>
+            a.getFullYear() === b.getFullYear() &&
+            a.getMonth() === b.getMonth() &&
+            a.getDate() === b.getDate();
+          const isToday = isSameDay(start, now);
+
+          let status = "";
+          if (isToday && now >= start && now <= end) status = "In Progress";
+          else if (isToday && now < start) status = "Upcoming";
+          else if (isToday && now > end) status = "Canceled";
+
+          return {
+            courseId: c.CourseID,
+            courseName: c.CourseName,
+            schedule: {
+              date: c.CourseDate,
+              startTime: c.StartTime,
+              endTime: c.EndTime,
+              dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
+            },
+            status,
+            isToday,
+          };
+        });
+
+        this.allCourses = withStatus;
+        this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
+      } catch (error) {
+        console.error("Error reloading courses:", error);
       }
     },
   },
@@ -331,7 +392,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
