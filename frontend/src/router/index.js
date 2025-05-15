@@ -20,8 +20,8 @@ const routes = [
   {path: '/notification', component: NotiFication}, 
   { path: '/admin/home', name: 'adminhome', component: AdminHome },
   { path: '/course_summary', name: 'course_summary', component: Summary },
-  { path: '/personal_summary', name: 'personal_summary', component: PersonalSummary }
-  { path: '/stdattd/:courseId', name: 'StudentAttd',component: StudentAttd}
+  { path: '/personal_summary', name: 'personal_summary', component: PersonalSummary },
+  { path: '/stdattd/:courseId', name: 'StudentAttd',component: StudentAttd},
 ];
 
 export default createRouter({
