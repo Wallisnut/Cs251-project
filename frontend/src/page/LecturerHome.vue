@@ -16,11 +16,11 @@
     <!-- Main Content -->
     <div class="main-container">
       <h2 class="today">TODAY</h2>
-      <div class="today-container">
-        <div class="courseStatus">
+      <div class="today-container" style="display: flex; flex-wrap: wrap; gap: 1rem; border: 10px saddlebrown;">
+        <!-- <div class="courseStatus"> -->
           <div
             class="course-card"
-            v-for="course in courses.filter(isTodayCourse)"
+            v-for="course in todayCourses"
             :key="course.courseId"
             :class="getCourseCardClass(course.status)"
             style="position: relative"
@@ -39,7 +39,7 @@
             <p>{{ course.schedule.dayOfWeek }}</p>
             <p>{{ course.schedule.startTime }} - {{ course.schedule.endTime }}</p>
           </div>
-        </div>
+        <!-- </div> -->
       </div>
 
       <h3 class="all-courses">All Courses</h3>
@@ -273,7 +273,10 @@ export default {
         });
 
         this.allCourses = withStatus;
-        this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
+        this.todayCourses = withStatus.filter((c) =>
+          c.isToday && ["In Progress", "Upcoming", "Canceled"].includes(c.status)
+        );
+
       } catch (err) {
         console.error("Error loading data:", err);
       }
@@ -292,6 +295,13 @@ export default {
         courseDate.getMonth() === today.getMonth() &&
         courseDate.getFullYear() === today.getFullYear()
       );
+    },
+    
+    formatDateLocal(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     },
     async submitCourse() {
       console.log("Submitting:", this.newCourse);
@@ -315,8 +325,10 @@ export default {
           const offset = (targetDay + 7 - currentDay) % 7;
           const classDate = new Date(today);
           classDate.setDate(today.getDate() + offset);
-          const formattedDate = classDate.toISOString().split("T")[0];
 
+          const formattedDate = this.formatDateLocal(classDate);
+
+          
           const toMinutes = (time) => {
             const [h, m] = time.split(":").map(Number);
             return h * 60 + m;
