@@ -75,15 +75,6 @@ export default {
         alert("ไม่สามารถดึงข้อมูลนักเรียนได้");
       }
     },
-    addMockRow() {
-      // Add a mock row to the attendance array
-      this.attendance.push({
-        FirstName: "Mock",
-        LastName: "Student",
-        StudentID: "1234567890",
-        isChecked: false, // Default unchecked
-      });
-    },
     async recordAttendance(index) {
       const row = this.attendance[index];
       const payload = {
@@ -122,7 +113,6 @@ export default {
   },
   mounted() {
     this.fetchStudents(); // Fetch students when the component is mounted
-    this.addMockRow(); // Add a mock row for testing
 
     // Set today's date
     const today = new Date();
