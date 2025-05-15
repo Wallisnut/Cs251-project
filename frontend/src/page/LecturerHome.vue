@@ -20,10 +20,17 @@
         <div class="courseStatus">
           <div
             class="course-card"
-            v-for="course in todayCourses"
+            v-for="course in courses.filter(isTodayCourse)"
             :key="course.courseId"
             :class="getCourseCardClass(course.status)"
+            style="position: relative"
           >
+            <div class="dots" @click="toggleDropdown(course.courseId)">⋮</div>
+            <div v-if="dropdownVisible === course.courseId" class="dropdown-menu">
+              <button @click="showJoinCode(course)">Join Code</button>
+              <button @click="cancelClass(course)">Cancel Class</button>
+            </div>
+
             <div class="status">
               <span :style="{ backgroundColor: getStatusDotColor(course.status) }"></span>
               {{ course.status }}
@@ -41,12 +48,25 @@
           v-for="course in allCourses"
           :key="course.courseId"
           class="course-card"
-          style="background: #b9b9b9"
+          style="background: #b9b9b9; position: relative"
         >
+          <div class="dots" @click="toggleDropdown(course.courseId)">⋮</div>
+          <div v-if="dropdownVisible === course.courseId" class="dropdown-menu">
+            <button @click="showJoinCode(course)">Join Code</button>
+          </div>
+
           <h4>{{ course.courseId }}</h4>
           <p>{{ course.courseName }}</p>
           <p>{{ course.schedule.dayOfWeek }}</p>
           <p>{{ course.schedule.startTime }} - {{ course.schedule.endTime }}</p>
+        </div>
+      </div>
+
+      <div v-if="showJoinCodeModal" class="modal-overlay">
+        <div class="modal-content">
+          <h3>Join Code</h3>
+          <p>{{ selectedCourse?.joinCode }}</p>
+          <button @click="showJoinCodeModal = false">Close</button>
         </div>
       </div>
 
@@ -113,7 +133,13 @@ export default {
       taughtCourseIds: [],
       allCourses: [],
       todayCourses: [],
+      courses:[],
       showModal: false,
+      showJoinModal: false,
+      joinCodeToShow: "", 
+      dropdownVisible: null,
+      showJoinCodeModal: false,
+      selectedCourse: null,
       newCourse: {
         courseId: "",
         day: "",
@@ -149,6 +175,7 @@ export default {
 
       const withStatus = filteredCourses.map((c) => {
         const start = new Date(`${c.CourseDate}T${c.StartTime}`);
+        console.log("CourseDate:", c.CourseDate, "Parsed Date:", start);
         const end = new Date(`${c.CourseDate}T${c.EndTime}`);
         const isSameDay = (a, b) =>
           a.getFullYear() === b.getFullYear() &&
@@ -159,6 +186,7 @@ export default {
         if (isToday && now >= start && now <= end) status = "In Progress";
         else if (isToday && now < start) status = "Upcoming";
         else if (isToday && now > end) status = "Canceled";
+        if (isToday) console.log("Matched Course:", c.CourseID, status);
         return {
           courseId: c.CourseID,
           courseName: c.CourseName,
@@ -203,13 +231,38 @@ export default {
       if (status === "In Progress") return "in-progress";
       if (status === "Upcoming") return "upcoming";
       if (status === "Canceled") return "canceled";
-      return "";
+      return "course-card";
     },
     getStatusDotColor(status) {
       if (status === "In Progress") return "#2BC642";
       if (status === "Upcoming") return "#FFCD29";
       if (status === "Canceled") return "#FF2929";
       return "#000";
+    },
+    cancelClass(course) {
+      if (course.status !== "Canceled") {
+        course.status = "Canceled";
+      }
+      this.dropdownVisible = null;
+    },
+
+    toggleDropdown(courseId) {
+      this.dropdownVisible = this.dropdownVisible === courseId ? null : courseId;
+    },
+    showJoinCode(course) {
+      this.selectedCourse = course;
+      this.showJoinCodeModal = true;
+      this.dropdownVisible = null;
+    },
+    isTodayCourse(course) {
+      const courseDate = new Date(course.schedule.date);
+      const today = new Date();
+
+      return (
+        courseDate.getDate() === today.getDate() &&
+        courseDate.getMonth() === today.getMonth() &&
+        courseDate.getFullYear() === today.getFullYear()
+      );
     },
     async submitCourse() {
       console.log("Submitting:", this.newCourse);
@@ -250,8 +303,9 @@ export default {
           courseDate: formattedDate,
         };
 
-        await axios.post("http://localhost:5000/add-course", payload, { headers });
-
+        const response = await axios.post("http://localhost:5000/add-course", payload, { headers });
+        const joinCode = response.data.joinCode;
+        alert(`Course added successfully! Join Code: ${joinCode}`);
         const start = new Date(`${payload.courseDate}T${payload.startTime}`);
         const end = new Date(`${payload.courseDate}T${payload.endTime}`);
         const now = new Date();
@@ -286,6 +340,8 @@ export default {
         }
       }
 
+
+    await this.fetchCourses();   
     alert("Course added successfully!");
     this.newCourse = {
       courseId: "",
@@ -367,6 +423,8 @@ export default {
   top: 10px;
   left: 10px;
   display: flex;
+  gap:0.5rem;
+  font-weight: bold;
   align-items: center;
   font-size: 14px;
 }
@@ -386,6 +444,17 @@ export default {
 }
 .canceled {
   background-color: #0f9d58;
+}
+.course-card.in-progress {
+  border-left: 5px solid green;
+}
+
+.course-card.upcoming {
+  border-left: 5px solid purple;
+}
+
+.course-card.canceled {
+  border-left: 5px solid red;
 }
 .plus-icon {
   position: absolute;
@@ -428,7 +497,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 150;
 }
 .modal-content {
   background: #fff;
@@ -523,6 +592,23 @@ input {
 button[disabled] {
   background-color: #ccc !important;
   cursor: not-allowed;
+}
+.dots {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  cursor: pointer;
+  font-size: 18px;
+}
+.dropdown-menu {
+  position: absolute;
+  top: 30px;
+  right: 12px;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 </style>

@@ -8,21 +8,14 @@
           <router-link to="/home" class="nav-link text-white">Home</router-link>
         </li>
         <li class="nav-item mb-2">
-          <router-link to="/notifications" class="nav-link text-white"
-            >Notification</router-link
-          >
+          <router-link to="/notifications" class="nav-link text-white">Notification</router-link>
         </li>
         <li class="nav-item mb-2">
-          <router-link to="/summary" class="nav-link text-white"
-            >Summary</router-link
-          >
+          <router-link to="/summary" class="nav-link text-white">Summary</router-link>
         </li>
       </ul>
-      
       <div class="mt-auto">
-        <button @click="logout" class="btn btn-light text-warning w-100">
-          Log Out
-        </button>
+        <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>
       </div>
     </nav>
 
@@ -38,25 +31,18 @@
             :class="getCourseCardClass(course.status)"
           >
             <div class="status">
-              <span
-                :style="{ backgroundColor: getStatusDotColor(course.status) }"
-              ></span>
+              <span :style="{ backgroundColor: getStatusDotColor(course.status) }"></span>
               {{ course.status }}
             </div>
             <h4>{{ course.courseId }}</h4>
             <p>{{ course.schedule.dayOfWeek }}</p>
-            <p>
-              {{ course.schedule.startTime }} - {{ course.schedule.endTime }}
-            </p>
+            <p>{{ course.schedule.startTime }} - {{ course.schedule.endTime }}</p>
           </div>
         </div>
       </div>
 
       <h3 class="all-courses">All Courses</h3>
-      <div
-        class="all-courses"
-        style="display: flex; flex-wrap: wrap; gap: 1rem"
-      >
+      <div class="all-courses" style="display: flex; flex-wrap: wrap; gap: 1rem">
         <div
           v-for="course in allCourses"
           :key="course.courseId"
@@ -70,27 +56,27 @@
         </div>
       </div>
 
-      <div class="plus-icon" @click="openJoinModal">+</div>
-
-      <!-- Join Course Modal -->
-      <div
-        v-if="showJoinModal"
-        class="modal-overlay"
-        @click.self="closeJoinModal"
-      >
+      <div class="plus-icon" @click="showModal = true">+</div>
+      <!-- <button @click="showJoinModal = true" class="plus-button">+</button> -->
+      <div v-if="showModal" class="modal-overlay">
         <div class="modal-content">
-          <h3>กรอกรหัสเพื่อเข้าร่วมรายวิชา</h3>
+          <h3>Join Course</h3>
+
           <input
-            v-model="selectedCourseId"
-            placeholder="รหัสเข้าร่วม"
             type="text"
+            v-model="joinCodeInput"
+            placeholder="Enter Join Code"
+            class="join-input"
           />
-          <div class="button-row">
-            <button class="btn-join" @click="joinCourse">เข้าร่วม</button>
-            <button class="btn-cancel" @click="closeJoinModal">ยกเลิก</button>
+
+          <div class="modal-actions">
+            <button @click="confirmJoin" class="confirm-button">Join</button>
+            <button @click="cancelJoin" class="cancel-button">Cancel</button>
           </div>
         </div>
       </div>
+
+
     </div>
   </div>
 </template>
@@ -107,8 +93,8 @@ export default {
       todayCourses: [],
       enrolledCourseIds: [],
       availableCourses: [],
-      showJoinModal: false,
-      selectedCourseId: "",
+      showModal: false,
+      joinCodeInput: "",
     };
   },
   async mounted() {
@@ -120,10 +106,7 @@ export default {
       const userInfo = await axios.get("/user-info", { headers });
       this.studentId = userInfo.data.studentDetails.StudentID;
 
-      const enrolledRes = await axios.get(
-        `/student-courses/${this.studentId}`,
-        { headers }
-      );
+      const enrolledRes = await axios.get(`/student-courses/${this.studentId}`, { headers });
       const enrolled = enrolledRes.data;
 
       this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
@@ -187,47 +170,32 @@ export default {
       if (status === "Canceled") return "#FF2929";
       return "#000";
     },
-    openJoinModal() {
-      this.showJoinModal = true;
+    cancelJoin() {
+      this.joinCodeInput = "";
+      this.showModal = false;
     },
-    closeJoinModal() {
-      this.selectedCourseId = "";
-      this.showJoinModal = false;
-    },
-    async joinCourse() {
-      if (!this.selectedCourseId) {
-        return alert("กรุณากรอกรหัสรายวิชา");
+    confirmJoin() {
+      if (!this.joinCodeInput) {
+        alert("Please enter a join code.");
+        return;
       }
 
+      this.submitJoinCode();
+    },
+    async submitJoinCode() {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: token };
+
       try {
-        const token = localStorage.getItem("token");
-        const userInfo = await axios.get("/user-info", {
-          headers: { Authorization: token },
-        });
+        await axios.post("/join-course", {
+          studentId: this.studentId,
+          joinCode: this.joinCodeInput,
+        }, { headers });
 
-        const studentId = userInfo.data?.studentDetails?.StudentID;
-        if (!studentId) {
-          return alert("เฉพาะนักศึกษาที่สามารถเข้าร่วมรายวิชาได้");
-        }
-
-        await axios.post(
-          "/join-course",
-          {
-            studentId,
-            courseId: this.selectedCourseId,
-          },
-          {
-            headers: { Authorization: token },
-          }
-        );
-
-        alert("เข้าร่วมรายวิชาสำเร็จ!");
-        this.closeJoinModal();
-        location.reload();
+        alert("Joined successfully!");
+        this.showJoinModal = false;
       } catch (err) {
-        alert(
-          "เข้าร่วมล้มเหลว: " + (err.response?.data?.message || "ไม่ทราบสาเหตุ")
-        );
+        alert("Invalid join code or already joined.");
       }
     },
   },
@@ -323,7 +291,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  cursor: pointer;
+  cursor: default;
 }
 .plus-icon:hover {
   box-shadow: 0 0 10px rgba(246, 181, 27, 0.8);
@@ -332,67 +300,37 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .modal-content {
   background: white;
-  padding: 1.5rem;
-  border-radius: 15px;
-  width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.modal-content h3 {
-  color: #003366;
+  padding: 20px;
+  width: 300px;
+  border-radius: 10px;
   text-align: center;
-  margin-bottom: 20px;
 }
-.modal-content input,
-.modal-content button {
+.modal-buttons button {
+  margin: 0 0.5rem;
+}
+
+
+.join-input {
   width: 100%;
-  padding: 8px;
-  font-size: 1rem;
-}
-
-.modal-content input {
-  width: 100%;
-  padding: 8px;
-  font-size: 1rem;
-  border-radius: 8px; /* ความมนของ input */
-  border: 1px solid #ccc;
-}
-
-.button-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.button-row button {
-  flex: 1;
   padding: 10px;
-  font-size: 1rem;
-  border-radius: 8px;
+  margin: 10px 0;
+}
+
+.modal-actions button {
+  margin: 5px;
+  padding: 10px 15px;
   border: none;
   cursor: pointer;
 }
-
-.btn-join {
-  background-color: #003366;
-  color: white;
-}
-
-.btn-cancel {
-  background-color: #cccccc;
-  color: white;
-}
-
 </style>
