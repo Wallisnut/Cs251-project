@@ -1,6 +1,5 @@
 # Cs251-project
 
-<<<<<<< HEAD
 ## Back-end : MySQL
 
 ## Front–end : Vue.js , HTML , CSS , Javascript
