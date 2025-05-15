@@ -48,7 +48,7 @@
         >
           <div class="dots" @click="toggleDropdown(course.courseId)">⋮</div>
           <div v-if="dropdownVisible === course.courseId" class="dropdown-menu">
-            <button @click="showJoinCode(course)">Join Code</button>
+            <button @click="showJoinCodeallcourse(course)">Join Code</button>
           </div>
 
           <h4>{{ course.courseId }}</h4>
@@ -62,7 +62,7 @@
         <div class="modal-content">
           <h3>Join Code</h3>
           <p>{{ selectedCourse?.joinCode }}</p>
-          <button @click="showJoinCodeModal = false">Close</button>
+          <button  class="close-button" @click="showJoinCodeModal = false">Close</button>
         </div>
       </div>
 
@@ -125,6 +125,7 @@ export default {
   name: "HomePage",
   data() {
     return {
+      dropdownVisible: null,
       lecturerId: "",
       taughtCourseIds: [],
       allCourses: [],
@@ -133,7 +134,6 @@ export default {
       showModal: false,
       showJoinModal: false,
       joinCodeToShow: "", 
-      dropdownVisible: null,
       showJoinCodeModal: false,
       selectedCourse: null,
       newCourse: {
@@ -219,6 +219,21 @@ export default {
   },
 
   methods: {
+    async showJoinCodeallcourse(course) {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: token };
+      try {
+        const response = await axios.get(`/course/${course.courseId}/join-code`, { headers });
+        this.selectedCourse = {
+          ...course,
+          joinCode: response.data.joinCode,
+        };
+        this.showJoinCodeModal = true;
+      } catch (err) {
+        console.error("Failed to fetch join code:", err);
+        alert("Could not load join code");
+      }
+    },
     logout() {
       localStorage.removeItem("token");
       this.$router.push("/login");
@@ -272,66 +287,68 @@ export default {
       const headers = { Authorization: token };
 
       try {
-      for (const schedule of this.newCourse.schedules) {
-        const dayMap = {Sun: 0,Mon: 1,Tue: 2,Wed: 3,Thu: 4,Fri: 5,Sat: 6};
-
-        const today = new Date();
-        const currentDay = today.getDay();
-        const targetDay = dayMap[schedule.day];
-        const offset = (targetDay + 7 - currentDay) % 7;
-        const classDate = new Date(today);
-        classDate.setDate(today.getDate() + offset);
-        const formattedDate = classDate.toISOString().split("T")[0];
-
-        const toMinutes = (time) => {
-          const [h, m] = time.split(":").map(Number);
-          return h * 60 + m;
-        };
-
-        const courseHour = (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
-
-        const payload = {
-          courseId: this.newCourse.courseId,
-          courseName: this.newCourse.courseName || "Untitled Course",
-          courseHour,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          courseDate: formattedDate,
-        };
-
-        const response = await axios.post("http://localhost:5000/add-course", payload, { headers });
-        console.log("Response:", response.data);
         const joinCodes = [];
-        joinCodes.push(response.data.joinCode);
-        alert(`Courses added successfully!\nJoin Codes:\n${joinCodes.join('\n')}`);
+        for (const schedule of this.newCourse.schedules) {
+          const dayMap = {Sun: 0,Mon: 1,Tue: 2,Wed: 3,Thu: 4,Fri: 5,Sat: 6};
 
-        const start = new Date(`${payload.courseDate}T${payload.startTime}`);
-        const end = new Date(`${payload.courseDate}T${payload.endTime}`);
-        const now = new Date();
-        const isSameDay = (a, b) =>
-          a.getFullYear() === b.getFullYear() &&
-          a.getMonth() === b.getMonth() &&
-          a.getDate() === b.getDate();
+          const today = new Date();
+          const currentDay = today.getDay();
+          const targetDay = dayMap[schedule.day];
+          const offset = (targetDay + 7 - currentDay) % 7;
+          const classDate = new Date(today);
+          classDate.setDate(today.getDate() + offset);
+          const formattedDate = classDate.toISOString().split("T")[0];
 
-        const isToday = isSameDay(start, now);
+          const toMinutes = (time) => {
+            const [h, m] = time.split(":").map(Number);
+            return h * 60 + m;
+          };
 
-        let status = "";
-        if (isToday && now >= start && now <= end) status = "In Progress";
-        else if (isToday && now < start) status = "Upcoming";
-        else if (isToday && now > end) status = "Canceled";
+          const courseHour = (toMinutes(schedule.endTime) - toMinutes(schedule.startTime)) / 60;
 
-        const newCourse = {
-          courseId: payload.courseId,
-          courseName: payload.courseName,
-          schedule: {
-            date: payload.courseDate,
-            dayOfWeek: schedule.day,
-            startTime: payload.startTime,
-            endTime: payload.endTime,
-          },
-          status,
-          isToday,
-        };
+          const payload = {
+            courseId: this.newCourse.courseId,
+            courseName: this.newCourse.courseName || "Untitled Course",
+            courseHour,
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+            courseDate: formattedDate,
+          };
+
+          const response = await axios.post("http://localhost:5000/add-course", payload, { headers });
+          console.log("Response:", response.data);
+          const joinCode = response.data.joinCode
+          joinCodes.push(response.data.joinCode);
+          alert(`Courses added successfully!\nJoin Codes:\n${joinCodes.join('\n')}`);
+
+          const start = new Date(`${payload.courseDate}T${payload.startTime}`);
+          const end = new Date(`${payload.courseDate}T${payload.endTime}`);
+          const now = new Date();
+          const isSameDay = (a, b) =>
+            a.getFullYear() === b.getFullYear() &&
+            a.getMonth() === b.getMonth() &&
+            a.getDate() === b.getDate();
+
+          const isToday = isSameDay(start, now);
+
+          let status = "";
+          if (isToday && now >= start && now <= end) status = "In Progress";
+          else if (isToday && now < start) status = "Upcoming";
+          else if (isToday && now > end) status = "Canceled";
+
+          const newCourse = {
+            courseId: payload.courseId,
+            courseName: payload.courseName,
+            schedule: {
+              date: payload.courseDate,
+              dayOfWeek: schedule.day,
+              startTime: payload.startTime,
+              endTime: payload.endTime,
+            },
+            status,
+            isToday,
+            joinCode:joinCode
+          };
 
         this.allCourses.push(newCourse);
         if (isToday && status) {
@@ -426,11 +443,13 @@ export default {
 .today-container {
   display: flex;
   gap: 15px;
+  overflow: visible !important;
   padding-left: 15px;
 }
 .courseStatus {
   display: flex;
   gap: 15px;
+  overflow: visible !important;
 }
 .course-card {
   width: 200px;
@@ -440,6 +459,8 @@ export default {
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: visible;
+  z-index: 1;
 }
 .course-card h4 {
   margin-top: 30px;
@@ -629,13 +650,51 @@ button[disabled] {
 }
 .dropdown-menu {
   position: absolute;
-  top: 30px;
-  right: 12px;
-  background: white;
+  top: 5px;
+  right: -150px;
+  color: white;
   border: 1px solid #ccc;
   padding: 5px 10px;
-  z-index: 100;
+  z-index: 9999;
+  flex-direction: column;
+  gap: 5px;
+  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.dropdown-menu button {
+  background-color: #f6b51b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-menu button:hover {
+  background-color: #e0a419;
+}
+.close-button {
+  margin-top: 1rem;
+  background-color: #f6b51b;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.close-button:hover {
+  background-color: #e0a419;
 }
 
 </style>

@@ -445,6 +445,9 @@ app.post(
       if (connection) {
         await connection.rollback();
       }
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ message: 'Course ID already exists' });
+      }
       console.error("Error in /add-course:", error);
       res.status(500).json({
         message: "Failed to add course",
@@ -458,7 +461,17 @@ app.post(
     }
   },
 );
-
+app.get("/course/:courseId/join-code", authenticate(["lecturer", "admin"]), async (req, res) => {
+  const courseId = req.params.courseId;
+  try {
+    const [rows] = await pool.promise().query("SELECT JoinCode FROM Course WHERE CourseID = ?", [courseId]);
+    if (!rows.length) return res.status(404).json({ message: "Course not found" });
+    res.json({ joinCode: rows[0].JoinCode });
+  } catch (err) {
+    console.error("Error fetching join code:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 app.post("/join-course", authenticate(["student"]), (req, res) => {
   const { studentId, JoinCode } = req.body;
 
