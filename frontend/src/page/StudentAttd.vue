@@ -98,196 +98,53 @@ export default {
     return {
       courseId: this.$route.params.courseId,
       studentId: null,
-      attendance: [], // Each item: { date, startTime, endTime, canCheckIn, status, selectedFile }
-      attendanceHistory: [], // fetched attendance records
-      course: {
-        schedule: {},
-        lecturers: [],
-      },
-      showPopup: false,
-      pendingAttendanceIndex: null,
+      attendanceRecords: [],
+      today: new Date().toISOString().split('T')[0]
     };
   },
-  mounted() {
-    this.fetchUserInfo();
-    this.fetchCourseData();
-  },
   methods: {
-    async fetchUserInfo() {
+    async fetchMyAttendance() {
       try {
-        const response = await axios.get("/user-info", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        const response = await axios.get(`/attendance-history/${this.studentId}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
-        this.studentId = response.data.studentDetails.StudentID;
-        await this.fetchAttendanceHistory();
-      } catch (error) {
-        console.error("Error fetching user info:", error);
-      }
-    },
-
-    recordAttendance(index) {
-      this.pendingAttendanceIndex = index;
-      this.showPopup = true;
-    },
-
-    async confirmAttendance() {
-  const index = this.pendingAttendanceIndex;
-  if (index === null) return;
-
-  try {
-    const response = await axios.post(
-      `/attendance-approval/${this.courseId}`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
-
-    const approvalResults = response.data.results || [];
-    const attendanceDate = this.attendance[index].date;
-
-    const result = approvalResults.find(
-      (res) =>
-        res.studentId === this.studentId &&
-        res.dateAttend === attendanceDate // ✅ ควรเช็คว่า backend ส่ง `dateAttend` มาด้วยจริงมั้ย
-    );
-
-    if (result) {
-      const status = result.recordedStatus || result.approvalStatus || "approved";
-      this.attendance[index].approvalStatus = status;
-      this.attendance[index].status = status;
-      alert("เช็คชื่อสำเร็จ!");
-    } else {
-      alert("ไม่พบข้อมูลการอนุมัติสำหรับวันนั้น");
-    }
-  } catch (error) {
-    console.error("Error approving attendance:", error);
-    alert("ไม่สามารถเช็คชื่อได้");
-  } finally {
-    this.showPopup = false;
-    this.pendingAttendanceIndex = null;
-  }
-},
-
-    async fetchCourseData() {
-      try {
-        const response = await axios.get(`/course_and_lecturer/${this.courseId}`);
-        this.course = response.data;
-        this.generateAttendanceRows();
-      } catch (error) {
-        console.error("Failed to fetch course:", error);
-      }
-    },
-
-    isAttendanceAvailable(courseDate, startTime, endTime) {
-      const now = new Date();
-      const start = new Date(`${courseDate}T${startTime}:00`);
-      const end = new Date(`${courseDate}T${endTime}:00`);
-      // Check if current time is within course start/end time and on the same day
-      return now >= start && now <= end && now.toISOString().slice(0, 10) === courseDate;
-    },
-
-    async fetchAttendanceHistory() {
-      try {
-        const res = await axios.get(`/attendance-history/${this.studentId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        this.attendanceHistory = res.data.attendance || [];
-        this.generateAttendanceRows();
-      } catch (err) {
-        console.error("Failed to fetch attendance history:", err);
-      }
-    },
-
-    generateAttendanceRows() {
-      if (!this.course.schedule.date) return;
-
-      const startDate = new Date(this.course.schedule.date);
-      const today = new Date();
-      const rows = [];
-
-      let loopDate = new Date(startDate);
-
-      while (loopDate <= today) {
-        const dateStr = loopDate.toISOString().slice(0, 10);
-
-        // Match attendanceHistory by CourseID and Date_Attend
-        const matchedHistory = this.attendanceHistory.find(
-          (record) =>
-            record.CourseID === this.courseId && record.Date_Attend === dateStr
+        
+        // Filter for current course
+        this.attendanceRecords = response.data.filter(
+          record => record.CourseID === this.courseId
         );
-
-        rows.push({
-          date: dateStr,
-          startTime: this.course.schedule.startTime,
-          endTime: this.course.schedule.endTime,
-          canCheckIn: this.isAttendanceAvailable(
-            dateStr,
-            this.course.schedule.startTime,
-            this.course.schedule.endTime
-          ),
-          status: matchedHistory ? matchedHistory.Status : "unchecked", // Use proper property names
-          approvalStatus: matchedHistory ? matchedHistory.recordedStatus || null : null,
-          selectedFile: null,
-        });
-
-        loopDate.setDate(loopDate.getDate() + 7);
-      }
-
-      this.attendance = rows;
-    },
-
-    handleFileUpload(index, event) {
-      const file = event.target.files[0];
-      const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
-
-      if (file && allowedTypes.includes(file.type)) {
-        this.attendance[index].selectedFile = file;
-        console.log("File selected:", file.name);
-      } else {
-        alert("กรุณาอัปโหลดไฟล์ PDF หรือ รูปภาพ (.png, .jpg)");
-        this.attendance[index].selectedFile = null;
+      } catch (error) {
+        console.error("Error fetching attendance:", error);
       }
     },
 
-    submitSingleLeave(index) {
-      const row = this.attendance[index];
-      const file = row.selectedFile;
-
-      if (!file || file.size > 5 * 1024 * 1024) {
-        alert("กรุณาเลือกไฟล์ PDF ไม่เกิน 5MB");
-        return;
+    async recordAttendance() {
+      try {
+        const response = await axios.post(
+          "/record-attendance",
+          {
+            studentId: this.studentId,
+            courseId: this.courseId,
+            date: this.today
+          },
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          }
+        );
+        
+        alert("Attendance recorded!");
+        this.fetchMyAttendance(); // Refresh data
+      } catch (error) {
+        console.error("Error recording attendance:", error);
+        alert("Failed to record attendance");
       }
-
-      const formData = new FormData();
-      formData.append("studentId", this.studentId);
-      formData.append("courseId", this.courseId);
-      formData.append("reason", "ขอลาด้วยเหตุผล...");
-      formData.append("file", file);
-
-      axios
-        .post("/submit-leave-request", formData)
-        .then((res) => {
-          alert(`ส่งคำขอลาสำเร็จ! รหัสคำขอ: ${res.data.requestId}`);
-        })
-        .catch((err) => {
-          console.error("Error submitting leave:", err);
-          alert("เกิดข้อผิดพลาดในการส่งคำขอลา");
-        });
-    },
-
-    changeFile(index) {
-      this.attendance[index].selectedFile = null;
-    },
-
-    logout() {
-      alert("Logging out...");
-      localStorage.removeItem("token");
-      this.$router.push("/login");
-    },
+    }
   },
+  mounted() {
+    // Get student ID from user info
+    this.studentId = /* your logic to get student ID */;
+    this.fetchMyAttendance();
+  }
 };
 </script>
 

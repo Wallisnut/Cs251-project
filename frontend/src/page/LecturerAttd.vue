@@ -45,103 +45,85 @@
     </div>
   </div>
 </template>
+
 <script>
 import axios from "axios";
 
 export default {
   data() {
     return {
-      attendance: [], // Holds enrolled students with attendance info
-      todayStr: "", // For display, formatted date (DD/MM/YYYY)
+      courseId: this.$route.params.courseId,
+      students: [],
+      attendanceDate: new Date().toISOString().split('T')[0]
     };
   },
   methods: {
-    async fetchEnrolledStudents() {
+    async fetchClassAttendance() {
       try {
-        const token = localStorage.getItem("token");
-        const courseId = this.$route.params.courseId;
-
-        // Fetch all students (consider optimizing backend to fetch enrolled students directly)
-        const allStudentsResponse = await axios.get("/students", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        // Get attendance report for the whole class
+        const report = await axios.get(
+          `/attendance-report/${this.courseId}`,
+          { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
-        const allStudents = allStudentsResponse.data.students;
-
-        const enrolledStudents = [];
-        for (const student of allStudents) {
-          try {
-            const enrolledRes = await axios.get(`/join-course/${student.StudentID}`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-            const enrolledCourses = enrolledRes.data;
-
-            const isEnrolled = enrolledCourses.some(
-              (course) => course.CourseID === courseId
-            );
-
-            if (isEnrolled) {
-              enrolledStudents.push({
-                ...student,
-                isChecked: false, // track checkbox or attendance marking
-              });
-            }
-          } catch (error) {
-            console.error(`Error fetching courses for student ${student.StudentID}:`, error);
-          }
-        }
-
-        this.attendance = enrolledStudents;
+        
+        // Get detailed records for the selected date
+        const records = await axios.get(
+          `/attendance-by-date/${this.courseId}/${this.attendanceDate}`,
+          { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        );
+        
+        this.students = report.data.map(student => {
+          const record = records.data.find(r => r.StudentID === student.StudentID);
+          return {
+            ...student,
+            status: record?.Status || 'absent',
+            recordId: record?.AttendanceID
+          };
+        });
       } catch (error) {
-        console.error("Error fetching enrolled students:", error);
-        alert("ไม่สามารถดึงข้อมูลนักเรียนที่ลงทะเบียนได้");
+        console.error("Error fetching attendance:", error);
       }
     },
 
-    async recordAttendance(index) {
-      const student = this.attendance[index];
-      const payload = {
-        studentId: student.StudentID, // Corrected key to match backend
-        courseId: this.$route.params.courseId,
-        dateAttend: new Date().toISOString().split("T")[0],
-        status: "present",
-      };
-
+    async updateAttendance(studentId, status) {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.post("/record-attendance", payload, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        alert(response.data.message);
-        // Optionally mark this student as checked in UI
-        this.attendance[index].isChecked = true;
+        // For existing records
+        await axios.put(
+          `/edit-attendance/${student.recordId}`,
+          { status },
+          { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        );
+        
+        // For new records
+        // await axios.post("/record-attendance", { ... });
+        
+        alert("Attendance updated!");
+        this.fetchClassAttendance(); // Refresh data
       } catch (error) {
-        console.error("Error recording attendance:", error);
-        alert("ไม่สามารถบันทึกการเข้าเรียนได้");
+        console.error("Error updating attendance:", error);
+        alert("Failed to update attendance");
       }
     },
 
-    logout() {
-      localStorage.removeItem("token");
-      this.$router.push("/login");
-    },
+    async approveAllAttendance() {
+      try {
+        const response = await axios.post(
+          `/attendance-approval/${this.courseId}`,
+          {},
+          { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        );
+        
+        alert("Attendance approved for the whole class!");
+        this.fetchClassAttendance();
+      } catch (error) {
+        console.error("Approval error:", error);
+        alert("Failed to approve attendance");
+      }
+    }
   },
   mounted() {
-    this.fetchEnrolledStudents();
-
-    // Format today’s date for display (DD/MM/YYYY)
-    const today = new Date();
-    this.todayStr = today.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  },
+    this.fetchClassAttendance();
+  }
 };
 </script>
 
