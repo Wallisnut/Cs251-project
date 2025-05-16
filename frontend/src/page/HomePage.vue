@@ -7,7 +7,9 @@
       <router-link to="/notification" class="menu-item"
         >🔔 Notification</router-link
       >
-      <router-link to="/personal_summary" class="menu-item">📊 Summary</router-link>
+      <router-link to="/personal_summary" class="menu-item"
+        >📊 Summary</router-link
+      >
       <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
 
@@ -97,50 +99,22 @@ export default {
     };
   },
   async mounted() {
-  const token = localStorage.getItem("token");
-  const headers = { Authorization: token };
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: token };
 
-  const today = new Date();
-  const formatted = this.formatDateLocal(today);
-  console.log("Today is:", formatted);
+    const today = new Date();
+    const formatted = this.formatDateLocal(today);
+    console.log("Today is:", formatted);
 
-  try {
-    const userInfo = await axios.get("/user-info", { headers });
-    this.studentId = userInfo.data.studentDetails.StudentID;
+    try {
+      const userInfo = await axios.get("/user-info", { headers });
+      this.studentId = userInfo.data.studentDetails.StudentID;
 
-    const enrolledRes = await axios.get(`/join-course/${this.studentId}`, { headers });
-    const joinedCourses = enrolledRes.data; // array of joined course info
-
-    const withStatus = joinedCourses.map((c) => {
-      const start = new Date(`${c.CourseDate}T${c.StartTime}`);
-      const end = new Date(`${c.CourseDate}T${c.EndTime}`);
-      const isToday = this.formatDateLocal(start) === formatted;
-
-      let status = "";
-      if (isToday && today >= start && today <= end) status = "In Progress";
-      else if (isToday && today < start) status = "Upcoming";
-      else if (isToday && today > end) status = "Canceled";
-
-      return {
-        courseId: c.CourseID,
-        courseName: c.CourseName,
-        schedule: {
-          date: c.CourseDate,
-          startTime: c.StartTime,
-          endTime: c.EndTime,
-          dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
-        },
-        status,
-        isToday,
-      };
-    });
-
-    this.allCourses = withStatus;
-    this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
-  } catch (err) {
-    console.error("Error loading student courses:", err);
-  }
-},
+      await this.reloadCourses();
+    } catch (err) {
+      console.error("Error loading student courses:", err);
+    }
+  },
 
   methods: {
     logout() {
@@ -196,21 +170,17 @@ export default {
             studentId: this.studentId,
             joinCode: this.joinCodeInput,
           },
-          { headers }
+          { headers },
         );
 
-        const joined = JSON.parse(
-          localStorage.getItem("joinedCourses") || "[]"
-        );
+        const joinedKey = `joinedCourses_${this.studentId}`;
+        const joined = JSON.parse(localStorage.getItem(joinedKey) || "[]");
         joined.push(response.data.courseId);
-        localStorage.setItem(
-          "joinedCourses",
-          JSON.stringify([...new Set(joined)])
-        );
+        localStorage.setItem(joinedKey, JSON.stringify([...new Set(joined)]));
 
         alert("Joined successfully!");
         this.showModal = false;
-        this.reloadCourses(); // รีโหลดวิชาใหม่
+        this.reloadCourses();
       } catch (err) {
         alert("Invalid join code or already joined.");
         console.error("Join failed:", err);
@@ -225,11 +195,9 @@ export default {
         const userInfo = await axios.get("/user-info", { headers });
         this.studentId = userInfo.data.studentDetails.StudentID;
 
-        const enrolledRes = await axios.get(`/join-course/${this.studentId}`, {
-          headers,
-        });
-        const enrolled = enrolledRes.data;
-        this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
+        const joinedKey = `joinedCourses_${this.studentId}`;
+        const joined = JSON.parse(localStorage.getItem(joinedKey) || "[]");
+        this.enrolledCourseIds = joined;
 
         const allRes = await axios.get("/all-courses", { headers });
         const rawCourses = allRes.data.courses;
@@ -238,7 +206,7 @@ export default {
         const todayStr = this.formatDateLocal(now);
 
         const enrolledCourses = rawCourses.filter((c) =>
-          this.enrolledCourseIds.includes(c.CourseID)
+          this.enrolledCourseIds.includes(c.CourseID),
         );
 
         const withStatus = enrolledCourses.map((c) => {
