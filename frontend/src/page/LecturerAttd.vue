@@ -60,20 +60,23 @@ export default {
     async fetchStudents() {
       try {
         const token = localStorage.getItem("token"); // Admin or lecturer token
-        const response = await axios.get("/students", {
+        const courseId = this.$route.params.courseId; // Get the course ID from route
+        const response = await axios.get(`/enrolled-students/${courseId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
+        // Map the response data to include the isChecked property
         this.attendance = response.data.students.map((student) => ({
           ...student,
           isChecked: false, // Add default isChecked property
         }));
       } catch (error) {
-        console.error("Error fetching students:", error);
-        alert("ไม่สามารถดึงข้อมูลนักเรียนได้");
+        console.error("Error fetching enrolled students:", error);
+        alert("ไม่สามารถดึงข้อมูลนักเรียนที่ลงทะเบียนได้");
       }
     },
+
     async recordAttendance(index) {
       const row = this.attendance[index];
       const payload = {
@@ -96,13 +99,15 @@ export default {
         alert("ไม่สามารถบันทึกการเข้าเรียนได้");
       }
     },
+
     logout() {
       localStorage.removeItem("token");
       this.$router.push("/login");
     },
   },
+
   mounted() {
-    this.fetchStudents(); // Fetch students when the component is mounted
+    this.fetchStudents(); // Fetch enrolled students when the component is mounted
 
     // Set today's date
     const today = new Date();
@@ -114,6 +119,7 @@ export default {
   },
 };
 </script>
+
 
 
 <style scoped>
