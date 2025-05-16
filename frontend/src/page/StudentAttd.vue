@@ -90,23 +90,16 @@
 </div>
   </div>
 </template>
-
 <script>
 import axios from "axios";
 
 export default {
-  mounted() {
-    this.fetchUserInfo();
-    this.fetchCourseData();
-  },
   data() {
     return {
       courseId: this.$route.params.courseId,
       studentId: null,
-      attendance: [], 
-      attendanceHistory: [],
-      selectedFile: null,
-      checkedDate: null,
+      attendance: [], // Each item: { date, startTime, endTime, canCheckIn, status, selectedFile }
+      attendanceHistory: [], // fetched attendance records
       course: {
         schedule: {},
         lecturers: [],
@@ -115,21 +108,21 @@ export default {
       pendingAttendanceIndex: null,
     };
   },
+  mounted() {
+    this.fetchUserInfo();
+    this.fetchCourseData();
+  },
   methods: {
-    fetchUserInfo() {
-      axios
-        .get("/user-info", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        })
-        .then((response) => {
-          this.studentId = response.data.studentDetails.StudentID;
-          this.fetchAttendanceHistory(); 
-        })
-        .catch((error) => {
-          console.error("Error fetching user info:", error);
+    async fetchUserInfo() {
+      try {
+        const response = await axios.get("/user-info", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
+        this.studentId = response.data.studentDetails.StudentID;
+        await this.fetchAttendanceHistory();
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
     },
 
     recordAttendance(index) {
@@ -137,44 +130,47 @@ export default {
       this.showPopup = true;
     },
 
-    confirmAttendance() {
+    async confirmAttendance() {
       const index = this.pendingAttendanceIndex;
-      const courseId = this.courseId;
+      if (index === null) return;
 
-      axios
-        .post(
-          `/attendance-approval/${courseId}`,
+      try {
+        const response = await axios.post(
+          `/attendance-approval/${this.courseId}`,
           {},
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        )
-        .then((response) => {
-          const approvalResults = response.data.results;
-          const result = approvalResults.find(
-            (res) => res.date === this.attendance[index].date
-          );
-          if (result) {
-            this.attendance[index].approvalStatus = result.approvalStatus;
-          }
-          alert("เช็คชื่อสำเร็จ!");
-        })
-        .catch((error) => {
-          console.error("Error approving attendance:", error);
-          alert("ไม่สามารถเช็คชื่อได้");
-        })
-        .finally(() => {
-          this.showPopup = false;
-          this.pendingAttendanceIndex = null;
-        });
+          { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+        );
+
+        // The backend should return approval results keyed by studentId and date or similar
+        // Find the approval status for this student's attendance date
+        const approvalResults = response.data.results;
+        const attendanceDate = this.attendance[index].date;
+
+        // Adjust this logic to match the actual backend response shape
+        const result = approvalResults.find(
+          (res) =>
+            res.studentId === this.studentId && // assuming backend returns studentId here
+            res.dateAttend === attendanceDate
+        );
+
+        if (result) {
+          this.attendance[index].approvalStatus = result.recordedStatus || "approved";
+          this.attendance[index].status = result.recordedStatus || "approved"; // also update status display
+        }
+
+        alert("เช็คชื่อสำเร็จ!");
+      } catch (error) {
+        console.error("Error approving attendance:", error);
+        alert("ไม่สามารถเช็คชื่อได้");
+      } finally {
+        this.showPopup = false;
+        this.pendingAttendanceIndex = null;
+      }
     },
 
     async fetchCourseData() {
       try {
-        const courseId = this.$route.params.courseId;
-        const response = await axios.get(`/course_and_lecturer/${courseId}`);
+        const response = await axios.get(`/course_and_lecturer/${this.courseId}`);
         this.course = response.data;
         this.generateAttendanceRows();
       } catch (error) {
@@ -183,25 +179,19 @@ export default {
     },
 
     isAttendanceAvailable(courseDate, startTime, endTime) {
-      const currentDate = new Date();
-      const courseDateTimeStart = new Date(`${courseDate}T${startTime}:00`);
-      const courseDateTimeEnd = new Date(`${courseDate}T${endTime}:00`);
-
-      return (
-        currentDate >= courseDateTimeStart &&
-        currentDate <= courseDateTimeEnd &&
-        currentDate.getDate() === courseDateTimeStart.getDate()
-      );
+      const now = new Date();
+      const start = new Date(`${courseDate}T${startTime}:00`);
+      const end = new Date(`${courseDate}T${endTime}:00`);
+      // Check if current time is within course start/end time and on the same day
+      return now >= start && now <= end && now.toISOString().slice(0, 10) === courseDate;
     },
 
     async fetchAttendanceHistory() {
       try {
         const res = await axios.get(`/attendance-history/${this.studentId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        this.attendanceHistory = res.data.attendance;
+        this.attendanceHistory = res.data.attendance || [];
         this.generateAttendanceRows();
       } catch (err) {
         console.error("Failed to fetch attendance history:", err);
@@ -209,6 +199,8 @@ export default {
     },
 
     generateAttendanceRows() {
+      if (!this.course.schedule.date) return;
+
       const startDate = new Date(this.course.schedule.date);
       const today = new Date();
       const rows = [];
@@ -218,9 +210,10 @@ export default {
       while (loopDate <= today) {
         const dateStr = loopDate.toISOString().slice(0, 10);
 
+        // Match attendanceHistory by CourseID and Date_Attend
         const matchedHistory = this.attendanceHistory.find(
           (record) =>
-            record.courseId === this.courseId && record.date === dateStr
+            record.CourseID === this.courseId && record.Date_Attend === dateStr
         );
 
         rows.push({
@@ -232,7 +225,9 @@ export default {
             this.course.schedule.startTime,
             this.course.schedule.endTime
           ),
-          teacher: matchedHistory ? matchedHistory.status : "unchecked",
+          status: matchedHistory ? matchedHistory.Status : "unchecked", // Use proper property names
+          approvalStatus: matchedHistory ? matchedHistory.recordedStatus || null : null,
+          selectedFile: null,
         });
 
         loopDate.setDate(loopDate.getDate() + 7);
@@ -292,6 +287,7 @@ export default {
   },
 };
 </script>
+
 
 
 <style scoped>

@@ -836,7 +836,7 @@ app.get("/leave-requests", authenticate(["lecturer", "admin"]), (req, res) => {
   });
 });
 
-app.post("/record-attendance", authenticate(["lecturer"]), (req, res) => {
+app.post("/record-attendance", authenticate(["student","lecturer"]), (req, res) => {
   const { studentId, courseId, dateAttend, status } = req.body;
 
   if (!studentId || !courseId || !dateAttend || !status) {
@@ -897,7 +897,7 @@ app.get(
 
 app.post(
   "/attendance-approval/:courseId",
-  authenticate(["student"]),
+  authenticate(["student","lecturer"]),
   async (req, res) => {
     const { courseId } = req.params;
 
