@@ -97,29 +97,24 @@ export default {
     };
   },
   async mounted() {
-    const token = localStorage.getItem("token");
-    const headers = { Authorization: token };
+  const token = localStorage.getItem("token");
+  const headers = { Authorization: token };
 
-    const today = new Date();
-    const formatted = this.formatDateLocal(today);
-    console.log("Today is:", formatted);
+  const today = new Date();
+  const formatted = this.formatDateLocal(today);
+  console.log("Today is:", formatted);
 
-    const allRes = await axios.get("/all-courses", { headers });
-    const allCourses = allRes.data.courses;
+  try {
+    const userInfo = await axios.get("/user-info", { headers });
+    this.studentId = userInfo.data.studentDetails.StudentID;
 
-    const joinedCourseIds = JSON.parse(
-      localStorage.getItem("joinedCourses") || "[]"
-    );
+    const enrolledRes = await axios.get(`/join-course/${this.studentId}`, { headers });
+    const joinedCourses = enrolledRes.data; // array of joined course info
 
-    const myCourses = allCourses.filter((c) =>
-      joinedCourseIds.includes(c.CourseID)
-    );
-
-    const withStatus = myCourses.map((c) => {
+    const withStatus = joinedCourses.map((c) => {
       const start = new Date(`${c.CourseDate}T${c.StartTime}`);
       const end = new Date(`${c.CourseDate}T${c.EndTime}`);
-      const isSameDay = (a, b) => a.toDateString() === b.toDateString();
-      const isToday = isSameDay(start, today);
+      const isToday = this.formatDateLocal(start) === formatted;
 
       let status = "";
       if (isToday && today >= start && today <= end) status = "In Progress";
@@ -142,7 +137,10 @@ export default {
 
     this.allCourses = withStatus;
     this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
-  },
+  } catch (err) {
+    console.error("Error loading student courses:", err);
+  }
+},
 
   methods: {
     logout() {
