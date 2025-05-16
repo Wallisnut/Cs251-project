@@ -1292,6 +1292,117 @@ app.delete(
   },
 );
 
+app.post("/send-missed-attendance-notifications", authenticate(["lecturer", "admin"]), async (req, res) => {
+  try {
+    const [courses] = await pool.promise().query(`
+      SELECT CourseID, CourseName, CourseDate
+      FROM Course
+      WHERE CourseDate = CURDATE()
+    `);
+
+    for (const course of courses) {
+      const { CourseID, CourseName } = course;
+
+      const [enrolled] = await pool.promise().query(
+        `SELECT Student.StudentID, Student.UserID
+         FROM Enrollment
+         JOIN Student ON Enrollment.StudentID = Student.StudentID
+         WHERE Enrollment.CourseID = ?`,
+        [CourseID]
+      );
+
+      const [attended] = await pool.promise().query(
+        `SELECT DISTINCT StudentID
+         FROM Attendance
+         WHERE CourseID = ? AND Date_Attend = CURDATE()`,
+        [CourseID]
+      );
+      const attendedIds = attended.map(row => row.StudentID);
+
+      for (const student of enrolled) {
+        if (!attendedIds.includes(student.StudentID)) {
+          const message = `คุณไม่ได้เข้าเรียนรายวิชา ${CourseName} วันนี้ คลิกที่นี่เพื่อส่งใบลา`;
+          await pool.promise().query(
+            `INSERT INTO Notification (UserID, Message, Status) VALUES (?, ?, 'unread')`,
+            [student.UserID, message]
+          );
+        }
+      }
+    }
+
+    res.json({ message: "Missed attendance notifications sent." });
+  } catch (err) {
+    console.error("Error sending missed attendance notifications:", err);
+    res.status(500).json({ message: "Failed to send notifications", error: err.message });
+  }
+});
+
+app.post(
+  "/submit-leave-request",
+  upload.single("file"),
+  authenticate(["student"]),
+  async (req, res) => {
+    const studentId = req.body.studentId?.trim();
+    const courseId = req.body.courseId?.trim();
+    const file = req.file;
+
+    if (!studentId || !courseId) {
+      return res.status(400).json({ message: "Student ID and course ID are required." });
+    }
+    if (!file) {
+      return res.status(400).json({ message: "Please attach a leave request file." });
+    }
+
+    try {
+      const [[student]] = await pool.promise().query(
+        `SELECT u.FirstName, u.LastName
+         FROM Student s
+         JOIN User u ON s.UserID = u.UserID
+         WHERE s.StudentID = ?`,
+        [studentId]
+      );
+      if (!student) {
+        return res.status(404).json({ message: "Student not found." });
+      }
+
+      const [[course]] = await pool.promise().query(
+        `SELECT CourseName FROM Course WHERE CourseID = ?`,
+        [courseId]
+      );
+      if (!course) {
+        return res.status(404).json({ message: "Course not found." });
+      }
+
+      const [[lecturer]] = await pool.promise().query(
+        `SELECT u.UserID
+         FROM Teach_IN t
+         JOIN Lecturer l ON t.LecturerID = l.LecturerID
+         JOIN User u ON l.UserID = u.UserID
+         WHERE t.CourseID = ?`,
+        [courseId]
+      );
+      if (!lecturer) {
+        return res.status(404).json({ message: "Lecturer not found for this course." });
+      }
+
+      const message = `${student.FirstName} ${student.LastName} ได้ส่งใบลารายวิชา ${course.CourseName}.`;
+      await pool.promise().query(
+        `INSERT INTO Notification (UserID, Message, Status, Type)
+         VALUES (?, ?, 'unread', 'leave-request')`,
+        [lecturer.UserID, message]
+      );
+
+      res.status(201).json({ message: "File submitted and notification sent." });
+    } catch (err) {
+      console.error("Error processing leave request:", err);
+      res.status(500).json({
+        message: "Failed to submit file.",
+        error: err.message,
+      });
+    }
+  }
+);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
