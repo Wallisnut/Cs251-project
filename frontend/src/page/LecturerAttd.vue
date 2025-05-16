@@ -35,7 +35,6 @@
                   type="radio"
                   v-model="attendance[index].isChecked"
                   :value="true"
-                  :disabled="!isAttendanceAvailable()"
                   @change="recordAttendance(index)"
                 />
               </td>
@@ -96,15 +95,6 @@ export default {
         console.error("Error recording attendance:", error);
         alert("ไม่สามารถบันทึกการเข้าเรียนได้");
       }
-    },
-    isAttendanceAvailable(date, startTime, endTime) {
-      // Use the parameters to determine if attendance is available
-      const currentDate = new Date();
-      const courseStart = new Date(`${date}T${startTime}`);
-      const courseEnd = new Date(`${date}T${endTime}`);
-
-      // Check if the current time is within the course's start and end time
-      return currentDate >= courseStart && currentDate <= courseEnd;
     },
     logout() {
       localStorage.removeItem("token");
