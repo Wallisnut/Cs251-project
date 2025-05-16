@@ -19,7 +19,7 @@
       </div>
 
       <div v-for="(group, index) in groupedByCourse" :key="index" class="summary-card">
-        <h2 class="text-xl font-bold">{{ group.courseName || group.courseId }}</h2>
+        <h2 class="text-xl font-bold">{{ group.courseId }} {{ group.courseName }}</h2>
 
         <div class="status-tags">
           <span class="badge present">เช็กชื่อ {{ group.present }}</span>
