@@ -4,8 +4,7 @@
     <div class="sidebar d-flex flex-column">
       <h2 class="fw-bold">Menu</h2>
       <router-link to="/lecturer/home" class="menu-item">🏠 Home</router-link>
-      <router-link to="/notificationProf" class="menu-item">🔔 Notification</router-link
-      >
+      <router-link to="/notificationProf" class="menu-item">🔔 Notification</router-link>
       <router-link to="/course_summary" class="menu-item active">📊 Summary</router-link>
       <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
@@ -18,12 +17,11 @@
 
         <!-- Course Dropdown -->
         <div class="dropdown">
-      <select v-model="selectedCourseId" @change="onCourseChange" class="border border-gray-300 rounded-lg px-4 py-2">
-        <option v-for="course in courses" :key="course.CourseID" :value="course.CourseID">
-          {{ course.CourseName }}
-        </option>
-      </select>
-
+          <select v-model="selectedCourseId" @change="onCourseChange" class="border border-gray-300 rounded-lg px-4 py-2">
+            <option v-for="course in courses" :key="course.CourseID" :value="course.CourseID">
+              {{ course.CourseID }}
+            </option>
+          </select>
         </div>
         <canvas id="attendanceChart" class="max-w-80 max-h-80 mb-10"></canvas>
 
@@ -76,58 +74,51 @@ export default {
       courses: [],
       selectedCourseId: null,
       attendanceData: [],
+      chartInstance: null,
       loading: true,
       error: null,
       search: "",
     };
   },
-computed: {
-  filteredData() {
-    const keyword = this.search.toLowerCase();
-    return this.attendanceData.filter(
-      (item) =>
-        item.StudentID.includes(keyword) ||
-        item.StudentFirstName.toLowerCase().includes(keyword) ||
-        item.StudentLastName.toLowerCase().includes(keyword)
-    );
+  computed: {
+    filteredData() {
+      const keyword = this.search.toLowerCase();
+      return this.attendanceData.filter(
+        (item) =>
+          item.StudentID.includes(keyword) ||
+          item.StudentFirstName.toLowerCase().includes(keyword) ||
+          item.StudentLastName.toLowerCase().includes(keyword)
+      );
+    },
   },
-},
   methods: {
     logout() {
-      // add logout logic here
       this.$router.push("/login");
     },
-       renderChart() {
+    renderChart() {
       const ctx = document.getElementById('attendanceChart').getContext('2d');
-        if (!ctx) {
+      if (!ctx) {
         console.error("Canvas context not found");
         return;
-        }
+      }
+
+      if (this.chartInstance) {
+        this.chartInstance.destroy();
+      }
+
       const labels = this.attendanceData.map((item, index) => `${index + 1}th`);
       const present = this.attendanceData.map(item => item.PresentClasses);
       const absent = this.attendanceData.map(item => item.AbsentClasses);
       const late = this.attendanceData.map(item => item.LateClasses);
 
-      new Chart(ctx, {
+      this.chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
           labels,
           datasets: [
-            {
-              label: 'Present',
-              data: present,
-              backgroundColor: '#a78bfa', // light purple
-            },
-            {
-              label: 'Absent',
-              data: absent,
-              backgroundColor: '#fca5a5', // soft red
-            },
-            {
-              label: 'Leave',
-              data: late,
-              backgroundColor: '#67e8f9', // light blue
-            },
+            { label: 'Present', data: present, backgroundColor: '#a78bfa' },
+            { label: 'Absent', data: absent, backgroundColor: '#fca5a5' },
+            { label: 'Leave', data: late, backgroundColor: '#67e8f9' },
           ],
         },
         options: {
@@ -137,75 +128,73 @@ computed: {
             tooltip: { mode: 'index', intersect: false },
           },
           scales: {
-            x: {
-              stacked: false,
-              title: { display: true, text: 'Students' },
-            },
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'Number of Classes' },
-            },
+            x: { title: { display: true, text: 'Students' } },
+            y: { beginAtZero: true, title: { display: true, text: 'Number of Classes' } },
           },
         },
       });
     },
-      loadCourses() {
-        const token = localStorage.getItem("token");
-        axios.get('/my-courses', {
-          headers: { Authorization: `Bearer ${token}` }
+    loadCourses() {
+      const token = localStorage.getItem("token");
+      axios.get('/my-courses', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => {
+          this.courses = res.data;
+          if (this.courses.length > 0) {
+            this.selectedCourseId = this.courses[0].CourseID;
+            this.loadAttendance(this.selectedCourseId);
+          }
         })
-          .then(res => {
-            this.courses = res.data;
-            if (this.courses.length > 0) {
-              this.selectedCourseId = this.courses[0].CourseID;
-              this.loadAttendance(this.selectedCourseId);
-            }
-          })
-          .catch(err => {
-            console.error("Error loading courses:", err);
-          });
-      },
+        .catch(err => {
+          console.error("Error loading courses:", err);
+        });
+    },
     onCourseChange() {
-    if (this.selectedCourseId) {
-      this.loadAttendance(this.selectedCourseId);
-    }},
-  loadAttendance(courseId) {
-  this.loading = true;
-  const token = localStorage.getItem("token");
+      if (this.selectedCourseId) {
+        this.loadAttendance(this.selectedCourseId);
+      }
+    },
+    loadAttendance(courseId) {
+      this.loading = true;
+      const token = localStorage.getItem("token");
 
-  axios.get(`/attendance-report/${courseId}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-    .then(res => {
-      this.attendanceData = res.data.map(item => ({
-        StudentID: item.StudentID,
-        StudentFirstName: item.FirstName,
-        StudentLastName: item.LastName,
-        PresentClasses: item.PresentClasses,
-        AbsentClasses: item.AbsentClasses,
-        LateClasses: item.LateClasses
-      }));
-    })
-    .catch(err => {
-      this.error = err.response?.data?.message || "Failed to load attendance report.";
-    })
-    .finally(() => {
-      this.loading = false;
-    });
-}
-
+      axios.get(`/attendance-report/${courseId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => {
+          this.attendanceData = res.data.map(item => ({
+            StudentID: item.StudentID,
+            StudentFirstName: item.FirstName,
+            StudentLastName: item.LastName,
+            PresentClasses: item.PresentClasses,
+            AbsentClasses: item.AbsentClasses,
+            LateClasses: item.LateClasses
+          }));
+        })
+        .catch(err => {
+          this.error = err.response?.data?.message || "Failed to load attendance report.";
+        })
+        .finally(() => {
+          this.loading = false;
+        });
+    }
   },
-    watch: {
+  created() {
+    this.loadCourses();
+  },
+  watch: {
     attendanceData(newData) {
       if (newData.length > 0) {
-      this.$nextTick(() => {
-        this.renderChart();
-      });
-    }
+        this.$nextTick(() => {
+          this.renderChart();
+        });
+      }
     },
   },
 };
 </script>
+
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap");
 * {
@@ -228,26 +217,19 @@ computed: {
   transition: all 0.2s ease-in-out;
   margin-bottom: 5px;
 }
-
 .menu-item:hover,
 .active {
   background: #ffc107;
   border-radius: 12px;
 }
-
-.active {
-  background: #ffc107;
-  border-radius: 10px;
-}
 .menu-item:last-child {
   margin-bottom: 0;
 }
 .main {
-    flex: 1;
-    padding: 40px;
-    background-color: #f5f5f5;
-    /* border: 6px solid white; */
-    border-radius: 20px;
+  flex: 1;
+  padding: 40px;
+  background-color: #f5f5f5;
+  border-radius: 20px;
 }
 canvas {
   background: #fff;
@@ -255,22 +237,21 @@ canvas {
   padding: 16px;
 }
 .header h1 {
-    font-size: 28px;
+  font-size: 28px;
 }
 .header p {
-    margin-top: -10px;
-    color: #777;
+  margin-top: -10px;
+  color: #777;
 }
 .dropdown {
-    margin: 20px 0;
+  margin: 20px 0;
 }
-
 .dropdown select {
-    padding: 10px;
-    font-size: 16px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    }
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
 * {
   box-sizing: border-box;
   font-family: sans-serif;
