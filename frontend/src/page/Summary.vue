@@ -79,12 +79,6 @@ export default {
       loading: true,
       error: null,
       search: "",
-      useMock: true,  // สลับใช้ mock หรือไม่
-    mockAttendanceData: [
-      { StudentID: 'S001', StudentFirstName: 'ณัฐชยา', StudentLastName: 'ทาศรี', PresentClasses: 8, AbsentClasses: 1, LateClasses: 0 },
-      { StudentID: 'S002', StudentFirstName: 'สมชาย', StudentLastName: 'ใจดี', PresentClasses: 7, AbsentClasses: 2, LateClasses: 1 },
-      { StudentID: 'S003', StudentFirstName: 'สุนิสา', StudentLastName: 'สดใส', PresentClasses: 9, AbsentClasses: 0, LateClasses: 0 },
-    ],
     };
   },
 computed: {
@@ -156,58 +150,51 @@ computed: {
       });
     },
       loadCourses() {
-    axios.get('/all-courses')
-      .then(res => {
-        this.courses = res.data;
-        if (this.courses.length > 0) {
-          this.selectedCourseId = this.courses[0].CourseID;
-          this.loadAttendance(this.selectedCourseId);
-        }
-      })
-      .catch(err => {
-        console.error(err);
-      });
-  },
+        const token = localStorage.getItem("token");
+        axios.get('/my-courses', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(res => {
+            this.courses = res.data;
+            if (this.courses.length > 0) {
+              this.selectedCourseId = this.courses[0].CourseID;
+              this.loadAttendance(this.selectedCourseId);
+            }
+          })
+          .catch(err => {
+            console.error("Error loading courses:", err);
+          });
+      },
     onCourseChange() {
     if (this.selectedCourseId) {
       this.loadAttendance(this.selectedCourseId);
     }},
   loadAttendance(courseId) {
-    this.loading = true;
-    axios.get(`/attendance-report/${courseId}`)
-      .then(res => {
-        this.attendanceData = res.data;
-      })
-      .catch(err => {
-        this.error = err.response?.data?.message || "Failed to load attendance report.";
-      })
-      .finally(() => {
-        this.loading = false;
-      });
-  }
+  this.loading = true;
+  const token = localStorage.getItem("token");
+
+  axios.get(`/attendance-report/${courseId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+    .then(res => {
+      this.attendanceData = res.data.map(item => ({
+        StudentID: item.StudentID,
+        StudentFirstName: item.FirstName,
+        StudentLastName: item.LastName,
+        PresentClasses: item.PresentClasses,
+        AbsentClasses: item.AbsentClasses,
+        LateClasses: item.LateClasses
+      }));
+    })
+    .catch(err => {
+      this.error = err.response?.data?.message || "Failed to load attendance report.";
+    })
+    .finally(() => {
+      this.loading = false;
+    });
+}
 
   },
-  created(){
-    this.loadCourses();
-  const courseId = this.$route.params.courseId;
-
-  if (this.useMock) {
-    this.attendanceData = this.mockAttendanceData;
-    this.loading = false;
-  } else {
-    axios
-      .get(`/attendance-report/${courseId}`)
-      .then((res) => {
-        this.attendanceData = res.data;
-      })
-      .catch((err) => {
-        this.error = err.response?.data?.message || "Failed to load attendance report.";
-      })
-      .finally(() => {
-        this.loading = false;
-      });
-  }
-},
     watch: {
     attendanceData(newData) {
       if (newData.length > 0) {

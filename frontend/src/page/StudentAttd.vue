@@ -46,7 +46,7 @@
                       type="file"
                       class="file-input"
                       @change="handleFileUpload(index, $event)"
-                      accept=".pdf"
+                      accept=".pdf, .png, .jpg, .jpeg"
                     />
                   </div>
                   <div v-else class="d-flex flex-column align-items-center">
@@ -171,7 +171,10 @@ export default {
       const courseDateTimeStart = new Date(`${courseDate}T${startTime}:00`);
       const courseDateTimeEnd = new Date(`${courseDate}T${endTime}:00`);
 
-      // Check if current time is within course start and end time
+      console.log("Now:", currentDate);
+      console.log("Start:", courseDateTimeStart);
+      console.log("End:", courseDateTimeEnd);
+
       return (
         currentDate >= courseDateTimeStart &&
         currentDate <= courseDateTimeEnd &&
@@ -208,14 +211,16 @@ export default {
         );
 
         rows.push({
-          date: dateStr,
-          canCheckIn: this.isAttendanceAvailable(
-            dateStr,
-            this.course.schedule.startTime,
-            this.course.schedule.endTime
-          ),
-          teacher: matchedHistory ? matchedHistory.status : "unchecked",
-        });
+        date: dateStr,
+        startTime: this.course.schedule.startTime,  
+        endTime: this.course.schedule.endTime,    
+        canCheckIn: this.isAttendanceAvailable(
+          dateStr,
+          this.course.schedule.startTime,
+          this.course.schedule.endTime
+        ),
+        teacher: matchedHistory ? matchedHistory.status : "unchecked",
+      });
 
         loopDate.setDate(loopDate.getDate() + 7);
       }
@@ -224,12 +229,14 @@ export default {
     },
 
     handleFileUpload(index, event) {
-      const file = event.target.files[0]; // Get the selected file
-      if (file && file.type === "application/pdf") {
-        this.attendance[index].selectedFile = file; // Store file at the specific row index
+      const file = event.target.files[0];
+      const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
+
+      if (file && allowedTypes.includes(file.type)) {
+        this.attendance[index].selectedFile = file;
         console.log("File selected:", file.name);
       } else {
-        alert("Please upload a valid PDF file");
+        alert("กรุณาอัปโหลดไฟล์ PDF หรือ รูปภาพ (.png, .jpg)");
         this.attendance[index].selectedFile = null;
       }
     },
