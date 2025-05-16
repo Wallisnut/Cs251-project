@@ -895,64 +895,83 @@ app.get(
   },
 );
 
-app.post(
-  "/attendance-approval/:courseId",
-  authenticate(["student","lecturer"]),
+// Lecturer-facing endpoint - for approving/rejecting attendance
+app.post("/attendance-approval/:courseId", 
+  authenticate(["lecturer"]), // Only lecturers can approve
   async (req, res) => {
     const { courseId } = req.params;
+    const { attendanceRecords } = req.body; // Array of { attendanceId, approvalStatus, comment }
 
+    if (!attendanceRecords || !Array.isArray(attendanceRecords)) {
+      return res.status(400).json({ message: "Invalid approval data" });
+    }
+
+    // Verify lecturer teaches this course
     try {
-      const [attendanceRecords] = await pool.promise().query(
-        `SELECT AttendanceID, StudentID, Status 
-         FROM Attendance 
-         WHERE CourseID = ?`,
-        [courseId],
+      const [teaching] = await pool.promise().query(
+        "SELECT 1 FROM CourseLecturer WHERE LecturerID = ? AND CourseID = ?",
+        [req.user.lecturerId, courseId]
       );
-
-      if (attendanceRecords.length === 0) {
-        return res
-          .status(404)
-          .json({ message: "No attendance records found for this course." });
+      
+      if (teaching.length === 0) {
+        return res.status(403).json({ message: "Not authorized for this course" });
       }
 
-      const expectedStatusMap = new Map();
-      attendanceRecords.forEach((record) => {
-        expectedStatusMap.set(record.StudentID, "present");
-      });
+      // Process approvals in transaction
+      const connection = await pool.promise().getConnection();
+      await connection.beginTransaction();
 
-      const approvalResults = [];
-      for (const record of attendanceRecords) {
-        const expectedStatus = expectedStatusMap.get(record.StudentID);
-        const approvalStatus =
-          expectedStatus === record.Status ? "approved" : "rejected";
+      try {
+        const results = [];
+        
+        for (const record of attendanceRecords) {
+          // Validate approval status
+          if (!["approved", "rejected"].includes(record.approvalStatus)) {
+            throw new Error(`Invalid status for record ${record.attendanceId}`);
+          }
 
-        await pool.promise().query(
-          `UPDATE Attendance 
-           SET ApprovalStatus = ? 
-           WHERE AttendanceID = ?`,
-          [approvalStatus, record.AttendanceID],
-        );
+          await connection.query(
+            `UPDATE Attendance SET 
+             ApprovalStatus = ?,
+             ApprovedBy = ?,
+             ApprovalDate = NOW(),
+             Comment = ?
+             WHERE AttendanceID = ? AND CourseID = ?`,
+            [
+              record.approvalStatus,
+              req.user.lecturerId,
+              record.comment || null,
+              record.attendanceId,
+              courseId
+            ]
+          );
 
-        approvalResults.push({
-          studentId: record.StudentID,
-          recordedStatus: record.Status,
-          expectedStatus,
-          approvalStatus,
+          results.push({
+            attendanceId: record.attendanceId,
+            status: record.approvalStatus,
+            updated: true
+          });
+        }
+
+        await connection.commit();
+        res.json({
+          message: "Attendance approvals processed",
+          results
         });
+      } catch (err) {
+        await connection.rollback();
+        throw err;
+      } finally {
+        connection.release();
       }
-
-      res.json({
-        message: "Attendance approval processed",
-        results: approvalResults,
-      });
     } catch (error) {
-      console.error("Attendance approval error:", error);
+      console.error("Approval error:", error);
       res.status(500).json({
-        message: "Failed to process attendance approval",
-        error: error.message,
+        message: "Failed to process approvals",
+        error: error.message
       });
     }
-  },
+  }
 );
 
 
