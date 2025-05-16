@@ -77,10 +77,10 @@ export default {
     async recordAttendance(index) {
       const row = this.attendance[index];
       const payload = {
-        StudentID: row.StudentID,
-        CourseID: this.$route.params.courseId,
-        Date_Attend: new Date().toISOString().split("T")[0],
-        Status: "present", // Assuming "Present" is the status for checked attendance
+        studentID: row.StudentID,
+        courseID: this.courseId,
+        dateAttend: new Date().toISOString().split("T")[0],
+        status: "present", // Assuming "Present" is the status for checked attendance
       };
 
       try {
