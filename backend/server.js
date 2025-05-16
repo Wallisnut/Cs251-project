@@ -836,7 +836,7 @@ app.get("/leave-requests", authenticate(["lecturer", "admin"]), (req, res) => {
   });
 });
 
-app.post("/record-attendance", authenticate(["student","lecturer"]), (req, res) => {
+app.post("/record-attendance", authenticate(["student", "lecturer"]), (req, res) => {
   const { studentId, courseId, dateAttend, status } = req.body;
 
   if (!studentId || !courseId || !dateAttend || !status) {
@@ -848,15 +848,19 @@ app.post("/record-attendance", authenticate(["student","lecturer"]), (req, res) 
   pool.query(query, [studentId, courseId, dateAttend, status], (err) => {
     if (err) {
       console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ message: "Failed to record attendance", error: err.message });
+      return res.status(500).json({
+        message: "Failed to record attendance",
+        error: err.message
+      });
     }
 
-    res.status(201).json({ message: "Attendance recorded successfully" });
+    res.status(201).json({
+      message: "Attendance recorded successfully",
+      status: status,
+      approvalStatus: "pending"
+    });
   });
 });
-
 
 app.get(
   "/attendance-report/:courseId",

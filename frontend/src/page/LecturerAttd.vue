@@ -99,30 +99,35 @@ export default {
 },
 
     async recordAttendance(index) {
-      const student = this.attendance[index];
-      const payload = {
-        studentId: student.StudentID,
-        courseId: this.courseId,
-        dateAttend: new Date().toISOString().split("T")[0],
-        status: "present",
-      };
+  const student = this.attendance[index];
 
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.post("/record-attendance", payload, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        alert(response.data.message);
+  const payload = {
+    studentId: student.StudentID,
+    dateAttend: new Date().toISOString().split("T")[0],
+    status: "present",
+  };
 
-        // Mark this student as checked in UI
-        this.attendance[index].isChecked = true;
-      } catch (error) {
-        console.error("Error recording attendance:", error);
-        alert("ไม่สามารถบันทึกการเข้าเรียนได้");
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `/attendance-approval/${this.courseId}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    },
+    );
+
+    alert(response.data.message || "อนุมัติการเข้าเรียนสำเร็จ");
+
+    // Update UI
+    this.attendance[index].isChecked = true;
+  } catch (error) {
+    console.error("Error approving attendance:", error);
+    alert("ไม่สามารถอนุมัติการเข้าเรียนได้");
+  }
+},
 
     logout() {
       localStorage.removeItem("token");
