@@ -45,7 +45,6 @@
     </div>
   </div>
 </template>
-
 <script>
 import axios from "axios";
 
@@ -57,20 +56,47 @@ export default {
     };
   },
   methods: {
-    async fetchStudents() {
+    async fetchEnrolledStudents() {
       try {
         const token = localStorage.getItem("token"); // Admin or lecturer token
-        const courseId = this.$route.params.courseId; // Get the course ID from route
-        const response = await axios.get(`/enrolled-students/${courseId}`, {
+        const courseId = this.$route.params.courseId; // Get course ID from route
+
+        // Fetch all students
+        const allStudentsResponse = await axios.get("/students", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        // Map the response data to include the isChecked property
-        this.attendance = response.data.students.map((student) => ({
-          ...student,
-          isChecked: false, // Add default isChecked property
-        }));
+        const allStudents = allStudentsResponse.data.students;
+
+        // Filter students who are enrolled in the course
+        const enrolledStudents = [];
+        for (const student of allStudents) {
+          try {
+            const enrolledRes = await axios.get(`/join-course/${student.StudentID}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const enrolledCourses = enrolledRes.data; // array of joined course info
+
+            // Check if the student is enrolled in the current course
+            const isEnrolled = enrolledCourses.some(
+              (course) => course.CourseID === courseId
+            );
+
+            if (isEnrolled) {
+              enrolledStudents.push({ 
+                ...student,
+                isChecked: false, // Add default isChecked property
+              });
+            }
+          } catch (error) {
+            console.error(`Error fetching courses for student ${student.StudentID}:`, error);
+          }
+        }
+
+        this.attendance = enrolledStudents;
       } catch (error) {
         console.error("Error fetching enrolled students:", error);
         alert("ไม่สามารถดึงข้อมูลนักเรียนที่ลงทะเบียนได้");
@@ -105,11 +131,10 @@ export default {
       this.$router.push("/login");
     },
   },
-
   mounted() {
-    this.fetchStudents(); // Fetch enrolled students when the component is mounted
+    this.fetchEnrolledStudents(); // Fetch only enrolled students when mounted
 
-    // Set today's date
+ 
     const today = new Date();
     this.todayStr = today.toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -119,6 +144,7 @@ export default {
   },
 };
 </script>
+
 
 
 
