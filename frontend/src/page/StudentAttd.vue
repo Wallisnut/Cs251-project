@@ -99,7 +99,7 @@ export default {
     return {
       courseId: this.$route.params.courseId,
       studentId: null,
-      attendance: [], // Each item: { date, startTime, endTime, canCheckIn, status, selectedFile }
+      attendance: [], // Each item: { date, startTime, endTime, canCheckIn, status, selectedFile, approvalStatus }
       attendanceHistory: [], // fetched attendance records
       course: {
         schedule: {},
@@ -127,50 +127,45 @@ export default {
     },
 
     recordAttendance(index) {
+      // Called when user clicks "Record Attendance" button on a specific date row
       this.pendingAttendanceIndex = index;
       this.showPopup = true;
     },
 
-    async recordAttendance(status) {
-  try {
-    const response = await axios.post("/record-attendance", {
-      courseId: this.courseId,
-      status: status // 'present', 'late', or 'absent'
-    });
-    
-    // Update local state
-    this.attendanceStatus = status;
-    this.showSuccess("Attendance recorded");
-  } catch (error) {
-    this.showError(error.response?.data?.message || "Recording failed");
-  }
-}
+    async confirmAttendance() {
+      // Called when user confirms attendance in the popup
+      const index = this.pendingAttendanceIndex;
+      if (index === null) return;
 
-    const approvalResults = response.data.results || [];
-    const attendanceDate = this.attendance[index].date;
+      try {
+        const attendanceRecord = {
+          studentId: this.studentId,
+          courseId: this.courseId,
+          dateAttend: this.attendance[index].date,
+          status: "present", // or you can make this dynamic if you want
+        };
 
-    const result = approvalResults.find(
-      (res) =>
-        res.studentId === this.studentId &&
-        res.dateAttend === attendanceDate // ✅ ควรเช็คว่า backend ส่ง `dateAttend` มาด้วยจริงมั้ย
-    );
+        const token = localStorage.getItem("token");
 
-    if (result) {
-      const status = result.recordedStatus || result.approvalStatus || "approved";
-      this.attendance[index].approvalStatus = status;
-      this.attendance[index].status = status;
-      alert("เช็คชื่อสำเร็จ!");
-    } else {
-      alert("ไม่พบข้อมูลการอนุมัติสำหรับวันนั้น");
-    }
-  } catch (error) {
-    console.error("Error approving attendance:", error);
-    alert("ไม่สามารถเช็คชื่อได้");
-  } finally {
-    this.showPopup = false;
-    this.pendingAttendanceIndex = null;
-  }
-},
+        const response = await axios.post("/record-attendance", attendanceRecord, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Assuming backend returns success message
+        alert(response.data.message || "เช็คชื่อสำเร็จ!");
+
+        // Update local attendance status for UI
+        this.attendance[index].status = attendanceRecord.status;
+        this.attendance[index].approvalStatus = "approved";
+
+      } catch (error) {
+        console.error("Error recording attendance:", error);
+        alert(error.response?.data?.message || "ไม่สามารถเช็คชื่อได้");
+      } finally {
+        this.showPopup = false;
+        this.pendingAttendanceIndex = null;
+      }
+    },
 
     async fetchCourseData() {
       try {
@@ -186,7 +181,6 @@ export default {
       const now = new Date();
       const start = new Date(`${courseDate}T${startTime}:00`);
       const end = new Date(`${courseDate}T${endTime}:00`);
-      // Check if current time is within course start/end time and on the same day
       return now >= start && now <= end && now.toISOString().slice(0, 10) === courseDate;
     },
 
@@ -214,7 +208,6 @@ export default {
       while (loopDate <= today) {
         const dateStr = loopDate.toISOString().slice(0, 10);
 
-        // Match attendanceHistory by CourseID and Date_Attend
         const matchedHistory = this.attendanceHistory.find(
           (record) =>
             record.CourseID === this.courseId && record.Date_Attend === dateStr
@@ -229,7 +222,7 @@ export default {
             this.course.schedule.startTime,
             this.course.schedule.endTime
           ),
-          status: matchedHistory ? matchedHistory.Status : "unchecked", // Use proper property names
+          status: matchedHistory ? matchedHistory.Status : "unchecked",
           approvalStatus: matchedHistory ? matchedHistory.recordedStatus || null : null,
           selectedFile: null,
         });
@@ -291,6 +284,7 @@ export default {
   },
 };
 </script>
+
 
 
 

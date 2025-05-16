@@ -46,6 +46,7 @@
   </div>
 </template>
 
+
 <script>
 import axios from "axios";
 
@@ -54,67 +55,57 @@ export default {
     return {
       attendance: [], // Holds enrolled students with attendance info
       todayStr: "", // For display, formatted date (DD/MM/YYYY)
+      courseId: this.$route.params.courseId, // Save courseId for reuse
     };
   },
   methods: {
     async fetchEnrolledStudents() {
-      try {
-        const token = localStorage.getItem("token");
-        const courseId = this.$route.params.courseId;
-
-        // Fetch all students (consider optimizing backend to fetch enrolled students directly)
-        const allStudentsResponse = await axios.get("/students", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const allStudents = allStudentsResponse.data.students;
-
-        const enrolledStudents = [];
-        for (const student of allStudents) {
-          try {
-            const enrolledRes = await axios.get(`/join-course/${student.StudentID}`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-            const enrolledCourses = enrolledRes.data;
-
-            const isEnrolled = enrolledCourses.some(
-              (course) => course.CourseID === courseId
-            );
-
-            if (isEnrolled) {
-              enrolledStudents.push({
-                ...student,
-                isChecked: false, // track checkbox or attendance marking
-              });
-            }
-          } catch (error) {
-            console.error(`Error fetching courses for student ${student.StudentID}:`, error);
-          }
-        }
-
-        this.attendance = enrolledStudents;
-      } catch (error) {
-        console.error("Error fetching enrolled students:", error);
-        alert("ไม่สามารถดึงข้อมูลนักเรียนที่ลงทะเบียนได้");
-      }
-    },
-
-    async approveAttendance(records) {
   try {
-    const response = await axios.post(
-      `/attendance-approval/${this.courseId}`,
-      { attendanceRecords: records }
-    );
-    
-    this.showSuccess(`${response.data.results.length} records updated`);
-    this.refreshAttendanceData();
+    const token = localStorage.getItem("token");
+
+    // 1. ดึงนักเรียนทั้งหมด
+    const response = await axios.get("/students", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const allStudents = response.data.students;
+
+    // 2. สำหรับแต่ละคน ยิง GET /attendance-history/:studentId
+    const enrolled = [];
+
+    for (const student of allStudents) {
+      try {
+        const history = await axios.get(`/attendance-history/${student.StudentID}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // ถ้ามีประวัติการเข้าเรียนในคอร์สนี้ -> ถือว่าเคยลงทะเบียน
+        const hasThisCourse = history.data.some(
+          (record) => record.CourseID === this.courseId
+        );
+
+        if (hasThisCourse) {
+          enrolled.push({ ...student, isChecked: false });
+        }
+      } catch (e) {
+        console.error(`Error loading attendance for ${student.StudentID}`);
+      }
+    }
+
+    this.attendance = enrolled;
   } catch (error) {
-    this.showError("Approval failed");
+    console.error("Error fetching students:", error);
   }
-}
+},
+
+    async recordAttendance(index) {
+      const student = this.attendance[index];
+      const payload = {
+        studentId: student.StudentID,
+        courseId: this.courseId,
+        dateAttend: new Date().toISOString().split("T")[0],
+        status: "present",
+      };
 
       try {
         const token = localStorage.getItem("token");
@@ -124,7 +115,8 @@ export default {
           },
         });
         alert(response.data.message);
-        // Optionally mark this student as checked in UI
+
+        // Mark this student as checked in UI
         this.attendance[index].isChecked = true;
       } catch (error) {
         console.error("Error recording attendance:", error);
