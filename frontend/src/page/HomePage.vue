@@ -89,7 +89,6 @@ export default {
   data() {
     return {
       studentId: "",
-      courseStore: null,
       allCourses: [],
       todayCourses: [],
       enrolledCourseIds: [],
@@ -141,16 +140,20 @@ export default {
         isToday,
       };
     });
-
+    this.reloadCourses();
     this.allCourses = withStatus;
     this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
     this.courseStore = useCourseStore();
     this.courseStore.setCourses(this.todayCourses);
   },
   computed: {
+    courseStore() {
+      return useCourseStore();
+    },
     storeCourses() {
       return this.courseStore?.todayCourses || [];
     },
+    
   },
   methods: {
     logout() {
