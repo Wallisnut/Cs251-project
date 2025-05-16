@@ -1,23 +1,15 @@
 <template>
   <div class="d-flex vh-100">
     <!-- Sidebar -->
-    <nav style="width: 15%;" class="w-22 bg-white text-black d-flex flex-column p-4">
-      <h2 class="mb-5">Menu</h2>
-      <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-2">
-          <router-link to="/home" class="menu-item nav-link text-black">Home</router-link>
-        </li>
-        <li class="nav-item mb-2">
-          <router-link to="/notification" class="menu-item nav-link text-black">Notification</router-link>
-        </li>
-        <li class="nav-item mb-2">
-          <router-link to="/personal_summary" class="menu-item active nav-link">Summary</router-link>
-        </li>
-      </ul>
-      <div class="mt-auto">
-        <button @click="logout" class="btn btn-light text-warning w-100">Log Out</button>
-      </div>
-    </nav>
+    <div class="sidebar d-flex flex-column">
+      <h2 class="fw-bold">Menu</h2>
+      <router-link to="/home" class="menu-item">🏠 Home</router-link>
+      <router-link to="/notification" class="menu-item"
+        >🔔 Notification</router-link
+      >
+      <router-link to="/personal_summary" class="menu-item active">📊 Summary</router-link>
+      <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
+    </div>
 
     <!-- Main Content -->
     <div class="main flex-grow-1 p-5">
@@ -134,9 +126,40 @@ export default {
 </script>
 
 <style scoped>
+.sidebar {
+  width: 250px;
+  background: #f8f9fa;
+  height: 100vh;
+  padding: 20px;
+}
+.menu-item {
+  padding: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  color: black;
+  display: block;
+  background: transparent;
+  transition: all 0.2s ease-in-out;
+  margin-bottom: 5px;
+}
+
+.menu-item:hover,
+.active {
+  background: #ffc107;
+  border-radius: 12px;
+}
+
+.active {
+  background: #ffc107;
+  border-radius: 10px;
+}
+.menu-item:last-child {
+  margin-bottom: 0;
+}
 .main {
   background-color: #f5f5f5;
-  border: 6px solid white;
+  /* border: 6px solid white; */
   border-radius: 20px;
 }
 

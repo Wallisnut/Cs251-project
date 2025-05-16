@@ -3,18 +3,11 @@
     <!-- Sidebar -->
     <div class="sidebar d-flex flex-column">
       <h2 class="fw-bold">Menu</h2>
-      <router-link to="/home" class="menu-item" active-class="active">
-        <img class="menu-icon" :src="homeIcon" alt="Home" /> Home
-      </router-link>
-      <router-link to="/notification" class="menu-item" active-class="active">
-        <img class="menu-icon" :src="notiIcon" alt="Notification" /> Notification
-      </router-link>
-      <router-link to="/personal_summary" class="menu-item" active-class="active">
-        <img class="menu-icon" :src="summaryIcon" alt="Summary" /> Summary
-      </router-link>
-      <div class="menu-item mt-auto" @click="logout">
-        <img class="menu-icon" :src="logoutIcon" alt="Logout" /> Log Out
-      </div>
+      <router-link to="/home" class="menu-item">🏠 Home</router-link>
+      <router-link to="/notification" class="menu-item active">🔔 Notification</router-link
+      >
+      <router-link to="/personal_summary" class="menu-item">📊 Summary</router-link>
+      <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
 
     <!-- Content -->
