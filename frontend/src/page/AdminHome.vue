@@ -1,14 +1,10 @@
 <template>
   <div class="d-flex vh-100">
     <!-- Sidebar -->
-     <div class="sidebar d-flex flex-column">
-      <h2 class="fw-bold">Menu</h2>
-      <router-link to="/home" class="menu-item active">🏠 Home</router-link>
-      <router-link to="" class="menu-item"
-        >🔔 Notification</router-link
-      >
-      <router-link to="" class="menu-item">📊 Summary</router-link>
-      <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
+
+    <!-- Top Right Logout -->
+    <div class="position-absolute top-0 end-0 p-3">
+      <button @click="logout" class="btn btn-danger">Log Out</button>
     </div>
 
     <!-- Main Content -->
@@ -339,37 +335,6 @@ export default {
 </script>
 
 <style scoped>
-.sidebar {
-  width: 250px;
-  background: #f8f9fa;
-  height: 100vh;
-  padding: 20px;
-}
-.menu-item {
-  padding: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  text-decoration: none;
-  color: black;
-  display: block;
-  background: transparent;
-  transition: all 0.2s ease-in-out;
-  margin-bottom: 5px;
-}
-
-.menu-item:hover,
-.active {
-  background: #ffc107;
-  border-radius: 12px;
-}
-
-.active {
-  background: #ffc107;
-  border-radius: 10px;
-}
-.menu-item:last-child {
-  margin-bottom: 0;
-}
 .modal {
   position: fixed;
   top: 0;

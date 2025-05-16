@@ -96,26 +96,30 @@ export default {
     },
   },
   mounted() {
-    this.studentId = localStorage.getItem("studentId");
-    if (!this.studentId) {
-      console.error("Missing studentId");
-      return;
-    }
+  this.studentId = localStorage.getItem("studentId");
+  const token = localStorage.getItem("token");
 
-    // ดึงข้อมูลรายวิชาทั้งหมดเพื่อแปลงชื่อ CourseID -> CourseName
-    axios.get("/all-courses").then((res) => {
-      res.data.forEach((course) => {
-        this.coursesMap[course.CourseID] = course.CourseName;
-      });
+  if (!this.studentId || !token) {
+    console.error("Missing studentId or token");
+    return;
+  }
 
-      // ดึงข้อมูล attendance ของนักศึกษา
-      return axios.get(`/attendance-history/${this.studentId}`);
-    }).then((res) => {
-      this.attendance = res.data;
-    }).catch((err) => {
-      console.error(err);
+  axios.get("/all-courses", {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then((res) => {
+    res.data.courses.forEach((course) => {
+      this.coursesMap[course.CourseID] = course.CourseName;
     });
-  },
+
+    return axios.get(`/attendance-history/${this.studentId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }).then((res) => {
+    this.attendance = res.data;
+  }).catch((err) => {
+    console.error(err);
+  });
+},
   methods: {
     logout() {
       localStorage.removeItem("studentId");

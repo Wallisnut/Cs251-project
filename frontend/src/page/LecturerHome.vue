@@ -4,9 +4,7 @@
     <div class="sidebar d-flex flex-column">
       <h2 class="fw-bold">Menu</h2>
       <router-link to="/lecturer/home" class="menu-item active">🏠 Home</router-link>
-      <router-link to="/notificationProf" class="menu-item">🔔 Notification</router-link
-      >
-      <router-link to="/course_summary" class="menu-item">📊 Summary</router-link>
+      <router-link to="/notificationProf" class="menu-item">🔔 Notification</router-link>
       <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
 
@@ -428,7 +426,7 @@ export default {
       this.newCourse.schedules.splice(index, 1);
     },
     goToAttendance(courseId) {
-      this.$router.push({ name: "StudentAttd", params: { courseId } });
+      this.$router.push(`/lectattd/${courseId}`);
     },
 
   },

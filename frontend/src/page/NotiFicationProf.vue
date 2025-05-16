@@ -7,7 +7,6 @@
       <router-link to="/notificationProf" class="menu-item active"
         >🔔 Notification</router-link
       >
-      <router-link to="/course_summary" class="menu-item">📊 Summary</router-link>
       <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
 
@@ -38,11 +37,11 @@
 
 <script>
 import axios from "axios";
-import userIcon from "@/assets/user-icon.png";
-import homeIcon from "@/assets/home-icon.png";
-import notiIcon from "@/assets/noti-icon.png";
-import summaryIcon from "@/assets/summary-icon.png";
-import logoutIcon from "@/assets/logout-icon.png";
+import userIcon from "../assets/user-icon.png";
+import homeIcon from "../assets/home-icon.png";
+import notiIcon from "../assets/noti-icon.png";
+import summaryIcon from "../assets/summary-icon.png";
+import logoutIcon from "../assets/logout-icon.png";
 
 export default {
   name: "NotiFicationProf",

@@ -370,20 +370,48 @@ app.post("/add-student", authenticate(["admin"]), (req, res) => {
   });
 });
 
-app.delete("/delete-student/:id", authenticate(["admin"]), (req, res) => {
-  const { id } = req.params;
+app.delete("/delete-student/:id", authenticate(["admin"]), async (req, res) => {
+  const { id } = req.params; 
+  let connection;
 
-  const query = "DELETE FROM User WHERE UserID = ?";
-  pool.query(query, [id], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ message: "Failed to delete student", error: err.message });
+  try {
+    connection = await pool.promise().getConnection();
+    await connection.beginTransaction();
+
+    const [[student]] = await connection.query(
+      "SELECT UserID FROM Student WHERE StudentID = ?",
+      [id]
+    );
+
+    if (!student) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Student not found" });
     }
 
+    const userId = student.UserID;
+
+    await connection.query("DELETE FROM Enrollment WHERE StudentID = ?", [id]);
+    await connection.query("DELETE FROM Attendance WHERE StudentID = ?", [id]);
+    await connection.query("DELETE FROM AbsentRequest WHERE StudentID = ?", [id]);
+
+    await connection.query("DELETE FROM Student WHERE StudentID = ?", [id]);
+    await connection.query("DELETE FROM User WHERE UserID = ?", [userId]);
+
+    await connection.commit();
     res.json({ message: "Student deleted successfully" });
-  });
+  } catch (err) {
+    if (connection) await connection.rollback();
+    console.error("Error deleting student:", err);
+    res.status(500).json({ message: "Failed to delete student", error: err.message });
+  } finally {
+    if (connection) {
+      try {
+        connection.release();
+      } catch (releaseError) {
+        console.error("Error releasing connection:", releaseError);
+      }
+    }
+  }
 });
 
 function generateJoinCode(length = 6) {
@@ -1252,6 +1280,7 @@ app.get("/lecturers", authenticate(["admin"]), async (req, res) => {
       .json({ message: "Error fetching lecturers", error: err.message });
   }
 });
+
 app.delete(
   "/delete-lecturer/:id",
   authenticate(["admin"]),
@@ -1263,23 +1292,28 @@ app.delete(
       connection = await pool.promise().getConnection();
       await connection.beginTransaction();
 
+      const [[lecturer]] = await connection.query(
+        "SELECT UserID FROM Lecturer WHERE LecturerID = ?",
+        [id]
+      );
+
+      if (!lecturer) {
+        await connection.rollback();
+        return res.status(404).json({ message: "Lecturer not found" });
+      }
+
+      const userId = lecturer.UserID;
+
       await connection.query("DELETE FROM Teach_IN WHERE LecturerID = ?", [id]);
       await connection.query("DELETE FROM Lecturer WHERE LecturerID = ?", [id]);
-
-      await connection.query(
-        `DELETE FROM User 
-       WHERE UserID = (SELECT UserID FROM (SELECT UserID FROM Lecturer WHERE LecturerID = ?) AS subquery)`,
-        [id],
-      );
+      await connection.query("DELETE FROM User WHERE UserID = ?", [userId]);
 
       await connection.commit();
       res.json({ message: "Lecturer deleted successfully" });
     } catch (err) {
       if (connection) await connection.rollback();
       console.error("Error deleting lecturer:", err);
-      res
-        .status(500)
-        .json({ message: "Failed to delete lecturer", error: err.message });
+      res.status(500).json({ message: "Failed to delete lecturer", error: err.message });
     } finally {
       if (connection) {
         try {
@@ -1289,7 +1323,7 @@ app.delete(
         }
       }
     }
-  },
+  }
 );
 
 app.post("/send-missed-attendance-notifications", authenticate(["lecturer", "admin"]), async (req, res) => {
@@ -1402,6 +1436,8 @@ app.post(
     }
   }
 );
+
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
