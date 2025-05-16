@@ -121,11 +121,11 @@ export default {
       axios
         .get("/user-info", {
           headers: {
-            "user-token": localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         })
         .then((response) => {
-          this.studentId = response.data.adminDetails.AdminID;
+          this.studentId = response.data.studentDetails.StudentID;
         })
         .catch((error) => {
           console.error("Error fetching user info:", error);
@@ -146,7 +146,7 @@ export default {
       {},
       {
         headers: {
-          "user-token": localStorage.getItem("token"),
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
     )
@@ -201,7 +201,7 @@ export default {
       try {
         const res = await axios.get(`/attendance-history/${this.studentId}`, {
           headers: {
-            "user-token": localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
         this.attendanceHistory = res.data.attendance;
@@ -268,7 +268,8 @@ export default {
       const formData = new FormData();
       formData.append("studentId", this.studentId);
       formData.append("courseId", this.courseId);
-      formData.append("reason", file);
+      formData.append("reason", "ขอลาด้วยเหตุผล...");
+      formData.append("file", file);
 
       axios
         .post("/submit-leave-request", formData)

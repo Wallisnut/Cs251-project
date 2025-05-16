@@ -62,7 +62,7 @@ export default {
         const token = localStorage.getItem("token"); // Admin or lecturer token
         const response = await axios.get("/students", {
           headers: {
-            "user-token": token,
+            Authorization: `Bearer ${token}`,
           },
         });
         this.attendance = response.data.students.map((student) => ({
@@ -78,7 +78,7 @@ export default {
       const row = this.attendance[index];
       const payload = {
         studentID: row.StudentID,
-        courseID: this.courseId,
+        courseId: this.$route.params.courseId,
         dateAttend: new Date().toISOString().split("T")[0],
         status: "present", // Assuming "Present" is the status for checked attendance
       };
@@ -87,7 +87,7 @@ export default {
         const token = localStorage.getItem("token");
         const response = await axios.post("/record-attendance", payload, {
           headers: {
-            "user-token": token,
+            Authorization: `Bearer ${token}`,
           },
         });
         alert(response.data.message); // Show success message
