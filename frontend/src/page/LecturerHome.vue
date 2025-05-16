@@ -21,15 +21,16 @@
             @click="goToAttendance(course.courseId)"
             style="position: relative"
           >
-            <div class="dots" @click="toggleDropdown(course.courseId, 'today')">⋮</div>
+            <div class="dots" @click.stop="toggleDropdown(course.courseId, 'today')">⋮</div>
             <div
               v-if="dropdownVisible === `today-${course.courseId}`"
               class="dropdown-menu"
+              @click.stop
             >
-              <button @click="showJoinCodeallcourse(course)">Join Code</button>
+              <button @click.stop="showJoinCodeallcourse(course)">Join Code</button>
               <button 
                 v-if="course.status !== 'Canceled'" 
-                @click="cancelClass(course)"
+                @click.stop="cancelClass(course)"
               >
                 Cancel Class
               </button>
