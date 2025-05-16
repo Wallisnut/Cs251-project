@@ -125,7 +125,6 @@ export default {
       let status = "";
       if (isToday && today >= start && today <= end) status = "In Progress";
       else if (isToday && today < start) status = "Upcoming";
-      else if (isToday && today > end) status = "Canceled";
 
       return {
         courseId: c.CourseID,
@@ -163,15 +162,12 @@ export default {
 
     getCourseCardClass(status) {
       if (status === "In Progress") return "in-progress";
-      if (status === "Upcoming") return "upcoming";
-      if (status === "Canceled") return "canceled";
       return "";
     },
 
     getStatusDotColor(status) {
       if (status === "In Progress") return "#2BC642";
       if (status === "Upcoming") return "#FFCD29";
-      if (status === "Canceled") return "#FF2929";
       return "#000";
     },
 
@@ -262,7 +258,6 @@ export default {
           let status = "";
           if (isToday && now >= start && now <= end) status = "In Progress";
           else if (isToday && now < start) status = "Upcoming";
-          else if (isToday && now > end) status = "Canceled";
 
           return {
             courseId: c.CourseID,
@@ -397,9 +392,7 @@ export default {
 .upcoming {
   background-color: #8e24aa;
 }
-.canceled {
-  background-color: #0f9d58;
-}
+
 .plus-icon {
   position: absolute;
   bottom: 70px;

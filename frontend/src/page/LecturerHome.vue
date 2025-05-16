@@ -29,20 +29,6 @@
               @click.stop
             >
               <button @click.stop="showJoinCodeallcourse(course)">Join Code</button>
-              <button 
-                v-if="course.status !== 'Canceled'" 
-                @click.stop="cancelClass(course)"
-              >
-                Cancel Class
-              </button>
-              
-              <button 
-                v-else 
-                disabled 
-                style="opacity: 0.6; cursor: not-allowed;"
-              >
-                Already Canceled
-              </button>
 
             </div>
 
@@ -218,27 +204,15 @@ export default {
     getCourseCardClass(status) {
       if (status === "In Progress") return "in-progress";
       if (status === "Upcoming") return "upcoming";
-      if (status === "Canceled") return "canceled";
       return "course-card";
     },
     getStatusDotColor(status) {
       if (status === "In Progress") return "#2BC642";
       if (status === "Upcoming") return "#FFCD29";
-      if (status === "Canceled") return "#FF2929";
+      // if (status === "Canceled") return "#FF2929";
       return "#000";
     },
-    cancelClass(course) {
-      if (course.status !== "Canceled") {
-        course.status = "Canceled";
-      }
-      if (course.status === 'Canceled') {
-        alert("This class is already canceled.");
-        return;
-      }
-      course.status = "Canceled";
-      this.courseStore.updateCourseStatus(course.courseId, "Canceled");
-      this.dropdownVisible = null;
-    },
+
     toggleDropdown(courseId, section) {
       const id = `${section}-${courseId}`;
       this.dropdownVisible = this.dropdownVisible === id ? null : id;
@@ -288,7 +262,7 @@ export default {
           let status = "";
           if (isToday && now >= start && now <= end) status = "In Progress";
           else if (isToday && now < start) status = "Upcoming";
-          else if (isToday && now > end) status = "Canceled";
+          // else if (isToday && now > end) status = "Canceled";
           if (isToday) console.log("Matched Course:", c.CourseID, status);
           return {
             courseId: c.CourseID,
@@ -306,7 +280,7 @@ export default {
 
         this.allCourses = withStatus;
         this.todayCourses = withStatus.filter((c) =>
-          c.isToday && ["In Progress", "Upcoming", "Canceled"].includes(c.status)
+          c.isToday && ["In Progress", "Upcoming"].includes(c.status)
         );
         this.courseStore.setCourses(this.todayCourses);
       } catch (err) {
@@ -396,7 +370,6 @@ export default {
           let status = "";
           if (isToday && now >= start && now <= end) status = "In Progress";
           else if (isToday && now < start) status = "Upcoming";
-          else if (isToday && now > end) status = "Canceled";
 
           const newCourse = {
             courseId: payload.courseId,
@@ -556,9 +529,7 @@ export default {
 .upcoming {
   background-color: #8e24aa;
 }
-.canceled {
-  background-color: #0f9d58;
-}
+
 .course-card.in-progress {
   border-left: 5px solid green;
 }
@@ -567,9 +538,6 @@ export default {
   border-left: 5px solid purple;
 }
 
-.course-card.canceled {
-  border-left: 5px solid red;
-}
 .plus-icon {
   position: absolute;
   bottom: 70px;
