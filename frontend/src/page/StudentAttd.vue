@@ -98,13 +98,12 @@ export default {
   mounted() {
     this.fetchUserInfo();
     this.fetchCourseData();
-    this.fetchAttendanceHistory();
   },
   data() {
     return {
       courseId: this.$route.params.courseId,
       studentId: null,
-      attendance: [], // Holds attendance data
+      attendance: [], 
       attendanceHistory: [],
       selectedFile: null,
       checkedDate: null,
@@ -126,6 +125,7 @@ export default {
         })
         .then((response) => {
           this.studentId = response.data.studentDetails.StudentID;
+          this.fetchAttendanceHistory(); 
         })
         .catch((error) => {
           console.error("Error fetching user info:", error);
@@ -136,39 +136,40 @@ export default {
       this.pendingAttendanceIndex = index;
       this.showPopup = true;
     },
-    confirmAttendance() {
-  const index = this.pendingAttendanceIndex;
-  const courseId = this.courseId;
 
-  axios
-    .post(
-      `/attendance-approval/${courseId}`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    )
-    .then((response) => {
-      const approvalResults = response.data.results;
-      const result = approvalResults.find(
-        (res) => res.date === this.attendance[index].date
-      );
-      if (result) {
-        this.attendance[index].approvalStatus = result.approvalStatus;
-      }
-      alert("เช็คชื่อสำเร็จ!");
-    })
-    .catch((error) => {
-      console.error("Error approving attendance:", error);
-      alert("ไม่สามารถเช็คชื่อได้");
-    })
-    .finally(() => {
-      this.showPopup = false;
-      this.pendingAttendanceIndex = null;
-    });
-},
+    confirmAttendance() {
+      const index = this.pendingAttendanceIndex;
+      const courseId = this.courseId;
+
+      axios
+        .post(
+          `/attendance-approval/${courseId}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        )
+        .then((response) => {
+          const approvalResults = response.data.results;
+          const result = approvalResults.find(
+            (res) => res.date === this.attendance[index].date
+          );
+          if (result) {
+            this.attendance[index].approvalStatus = result.approvalStatus;
+          }
+          alert("เช็คชื่อสำเร็จ!");
+        })
+        .catch((error) => {
+          console.error("Error approving attendance:", error);
+          alert("ไม่สามารถเช็คชื่อได้");
+        })
+        .finally(() => {
+          this.showPopup = false;
+          this.pendingAttendanceIndex = null;
+        });
+    },
 
     async fetchCourseData() {
       try {
@@ -186,10 +187,6 @@ export default {
       const courseDateTimeStart = new Date(`${courseDate}T${startTime}:00`);
       const courseDateTimeEnd = new Date(`${courseDate}T${endTime}:00`);
 
-      console.log("Now:", currentDate);
-      console.log("Start:", courseDateTimeStart);
-      console.log("End:", courseDateTimeEnd);
-
       return (
         currentDate >= courseDateTimeStart &&
         currentDate <= courseDateTimeEnd &&
@@ -205,6 +202,7 @@ export default {
           },
         });
         this.attendanceHistory = res.data.attendance;
+        this.generateAttendanceRows();
       } catch (err) {
         console.error("Failed to fetch attendance history:", err);
       }
@@ -226,16 +224,16 @@ export default {
         );
 
         rows.push({
-        date: dateStr,
-        startTime: this.course.schedule.startTime,  
-        endTime: this.course.schedule.endTime,    
-        canCheckIn: this.isAttendanceAvailable(
-          dateStr,
-          this.course.schedule.startTime,
-          this.course.schedule.endTime
-        ),
-        teacher: matchedHistory ? matchedHistory.status : "unchecked",
-      });
+          date: dateStr,
+          startTime: this.course.schedule.startTime,
+          endTime: this.course.schedule.endTime,
+          canCheckIn: this.isAttendanceAvailable(
+            dateStr,
+            this.course.schedule.startTime,
+            this.course.schedule.endTime
+          ),
+          teacher: matchedHistory ? matchedHistory.status : "unchecked",
+        });
 
         loopDate.setDate(loopDate.getDate() + 7);
       }
@@ -283,7 +281,6 @@ export default {
     },
 
     changeFile(index) {
-      // Clear the previously selected file
       this.attendance[index].selectedFile = null;
     },
 
@@ -295,6 +292,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .sidebar {
