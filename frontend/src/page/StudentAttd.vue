@@ -133,41 +133,39 @@ export default {
     },
 
     async confirmAttendance() {
-  const index = this.pendingAttendanceIndex;
-  if (index === null) return;
+      // Called when user confirms attendance in the popup
+      const index = this.pendingAttendanceIndex;
+      if (index === null) return;
 
-  try {
-    const attendanceRecord = {
-      studentId: this.studentId,
-      courseId: this.courseId,
-      dateAttend: this.attendance[index].date,
-      status: "present" 
-    };
+      try {
+        const attendanceRecord = {
+          studentId: this.studentId,
+          courseId: this.courseId,
+          dateAttend: this.attendance[index].date,
+          status: "present", // or you can make this dynamic if you want
+        };
 
-    const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
-    const response = await axios.post("/record-attendance", attendanceRecord, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+        const response = await axios.post("/record-attendance", attendanceRecord, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-    // ✅ ใช้ข้อมูลจาก response ที่ backend ส่งกลับมา (ควรให้ backend ส่ง status กลับมาด้วย)
-    const recordedStatus = response.data.status || "present";
-    const approvalStatus = response.data.approvalStatus || "approved";
+        // Assuming backend returns success message
+        alert(response.data.message || "เช็คชื่อสำเร็จ!");
 
-    alert(response.data.message || "เช็คชื่อสำเร็จ!");
+        // Update local attendance status for UI
+        this.attendance[index].status = attendanceRecord.status;
+        this.attendance[index].approvalStatus = "approved";
 
-    // ✅ อัปเดต UI ด้วยข้อมูลจาก backend
-    this.attendance[index].status = recordedStatus;
-    this.attendance[index].approvalStatus = approvalStatus;
-
-  } catch (error) {
-    console.error("Error recording attendance:", error);
-    alert(error.response?.data?.message || "ไม่สามารถเช็คชื่อได้");
-  } finally {
-    this.showPopup = false;
-    this.pendingAttendanceIndex = null;
-  }
-},
+      } catch (error) {
+        console.error("Error recording attendance:", error);
+        alert(error.response?.data?.message || "ไม่สามารถเช็คชื่อได้");
+      } finally {
+        this.showPopup = false;
+        this.pendingAttendanceIndex = null;
+      }
+    },
 
     async fetchCourseData() {
       try {
