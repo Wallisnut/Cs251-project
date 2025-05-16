@@ -16,7 +16,7 @@
         <!-- <div class="courseStatus"> -->
           <div
             class="course-card"
-            v-for="course in todayCourses"
+            v-for="course in courseStoreTodayCourses"
             :key="'today-' + course.courseId"
             :class="getCourseCardClass(course.status)"
             @click="goToAttendance(course.courseId)"
@@ -142,6 +142,9 @@
 
 <script>
 import axios from "axios";
+import { useCourseStore } from "@/stores/courseStore";
+// import { mapState, mapActions } from "pinia";
+
 
 export default {
   name: "HomePage",
@@ -149,6 +152,7 @@ export default {
     return {
       dropdownVisible: null,
       lecturerId: "",
+      courseStore: useCourseStore(),
       taughtCourseIds: [],
       allCourses: [],
       todayCourses: [],
@@ -171,6 +175,7 @@ export default {
   },
   async mounted() {
     await this.fetchCourses();
+    this.courseStore = useCourseStore();
     document.addEventListener("click", this.onClickOutsideDropdown,true);
   },
   computed: {
@@ -185,7 +190,10 @@ export default {
     },
     exceedsCreditLimit() {
       return this.totalCreditHours > 3;
-    }
+    },
+    courseStoreTodayCourses() {
+      return this.courseStore.todayCourses;
+    },
   },
   methods: {
     async showJoinCodeallcourse(course) {
@@ -227,6 +235,8 @@ export default {
         alert("This class is already canceled.");
         return;
       }
+      course.status = "Canceled";
+      this.courseStore.updateCourseStatus(course.courseId, "Canceled");
       this.dropdownVisible = null;
     },
     toggleDropdown(courseId, section) {
@@ -298,7 +308,7 @@ export default {
         this.todayCourses = withStatus.filter((c) =>
           c.isToday && ["In Progress", "Upcoming", "Canceled"].includes(c.status)
         );
-
+        this.courseStore.setCourses(this.todayCourses);
       } catch (err) {
         console.error("Error loading data:", err);
       }
@@ -405,6 +415,7 @@ export default {
           this.allCourses.push(newCourse);
           if (isToday && status) {
             this.todayCourses.push(newCourse);
+            this.courseStore.setCourses(this.todayCourses);
           }
         }
 

@@ -18,7 +18,7 @@
         <div class="courseStatus">
           <div
             class="course-card"
-            v-for="course in todayCourses"
+            v-for="course in storeCourses"
             :key="course.courseId"
             :class="getCourseCardClass(course.status)"
             @click="goToAttendance(course.courseId)"
@@ -82,12 +82,14 @@
 
 <script>
 import axios from "axios";
+import { useCourseStore } from '@/stores/courseStore'
 
 export default {
   name: "HomePage",
   data() {
     return {
       studentId: "",
+      courseStore: null,
       allCourses: [],
       todayCourses: [],
       enrolledCourseIds: [],
@@ -142,8 +144,14 @@ export default {
 
     this.allCourses = withStatus;
     this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
+    this.courseStore = useCourseStore();
+    this.courseStore.setCourses(this.todayCourses);
   },
-
+  computed: {
+    storeCourses() {
+      return this.courseStore?.todayCourses || [];
+    },
+  },
   methods: {
     logout() {
       localStorage.removeItem("token");
@@ -269,6 +277,7 @@ export default {
 
         this.allCourses = withStatus;
         this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
+        this.courseStore.setCourses(this.todayCourses);
       } catch (error) {
         console.error("Error reloading courses:", error);
       }
