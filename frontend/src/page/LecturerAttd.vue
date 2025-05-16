@@ -79,7 +79,7 @@ export default {
       const payload = {
         StudentID: row.StudentID,
         CourseID: this.$route.params.courseId,
-        Date_Attend: todayDate, //new Date().toISOString().split("T")[0], // Current date in YYYY-MM-DD format
+        Date_Attend: new Date().toISOString().split("T")[0],
         Status: "present", // Assuming "Present" is the status for checked attendance
       };
 

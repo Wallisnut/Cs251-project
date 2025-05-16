@@ -78,6 +78,16 @@
         </table>
       </div>
     </div>
+    <div v-if="showPopup" class="modal-backdrop">
+  <div class="modal-box">
+    <h5>ยืนยันการเข้าร่วมคลาส</h5>
+    <p>คุณแน่ใจหรือไม่ว่าต้องการเช็คชื่อในวันนี้?</p>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button class="btn btn-secondary" @click="showPopup = false">ยกเลิก</button>
+      <button class="btn btn-success" @click="confirmAttendance">ยืนยัน</button>
+    </div>
+  </div>
+</div>
   </div>
 </template>
 
@@ -102,6 +112,8 @@ export default {
         schedule: {},
         lecturers: [],
       },
+      showPopup: false,
+      pendingAttendanceIndex: null,
     };
   },
   methods: {
@@ -121,39 +133,42 @@ export default {
     },
 
     recordAttendance(index) {
-      const courseId = this.courseId; // Get the courseId from the current route
-
-      axios
-        .post(
-          `/attendance-approval/${courseId}`,
-          {},
-          {
-            headers: {
-              "user-token": localStorage.getItem("token"), // Include the token for authentication
-            },
-          }
-        )
-        .then((response) => {
-          // Handle the response
-          const approvalResults = response.data.results;
-          console.log("Approval Results:", approvalResults);
-
-          // Update the specific row in the attendance array
-          const result = approvalResults.find(
-            (res) => res.date === this.attendance[index].date
-          );
-          if (result) {
-            this.attendance[index].approvalStatus = result.approvalStatus;
-          }
-
-          // Optionally, display a success message
-          alert("Attendance approval processed successfully!");
-        })
-        .catch((error) => {
-          console.error("Error approving attendance:", error);
-          alert("Failed to process attendance approval.");
-        });
+      this.pendingAttendanceIndex = index;
+      this.showPopup = true;
     },
+    confirmAttendance() {
+  const index = this.pendingAttendanceIndex;
+  const courseId = this.courseId;
+
+  axios
+    .post(
+      `/attendance-approval/${courseId}`,
+      {},
+      {
+        headers: {
+          "user-token": localStorage.getItem("token"),
+        },
+      }
+    )
+    .then((response) => {
+      const approvalResults = response.data.results;
+      const result = approvalResults.find(
+        (res) => res.date === this.attendance[index].date
+      );
+      if (result) {
+        this.attendance[index].approvalStatus = result.approvalStatus;
+      }
+      alert("เช็คชื่อสำเร็จ!");
+    })
+    .catch((error) => {
+      console.error("Error approving attendance:", error);
+      alert("ไม่สามารถเช็คชื่อได้");
+    })
+    .finally(() => {
+      this.showPopup = false;
+      this.pendingAttendanceIndex = null;
+    });
+},
 
     async fetchCourseData() {
       try {
@@ -320,5 +335,26 @@ export default {
 
 .container {
   display: block;
+}
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  text-align: center;
 }
 </style>
