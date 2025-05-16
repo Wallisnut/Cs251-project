@@ -51,17 +51,17 @@ import axios from "axios";
 export default {
   data() {
     return {
-      attendance: [], // Holds attendance data
-      todayStr: "", // Holds today's date
+      attendance: [], // Holds enrolled students with attendance info
+      todayStr: "", // For display, formatted date (DD/MM/YYYY)
     };
   },
   methods: {
     async fetchEnrolledStudents() {
       try {
-        const token = localStorage.getItem("token"); // Admin or lecturer token
-        const courseId = this.$route.params.courseId; // Get course ID from route
+        const token = localStorage.getItem("token");
+        const courseId = this.$route.params.courseId;
 
-        // Fetch all students
+        // Fetch all students (consider optimizing backend to fetch enrolled students directly)
         const allStudentsResponse = await axios.get("/students", {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -69,7 +69,6 @@ export default {
         });
         const allStudents = allStudentsResponse.data.students;
 
-        // Filter students who are enrolled in the course
         const enrolledStudents = [];
         for (const student of allStudents) {
           try {
@@ -78,17 +77,16 @@ export default {
                 Authorization: `Bearer ${token}`,
               },
             });
-            const enrolledCourses = enrolledRes.data; // array of joined course info
+            const enrolledCourses = enrolledRes.data;
 
-            // Check if the student is enrolled in the current course
             const isEnrolled = enrolledCourses.some(
               (course) => course.CourseID === courseId
             );
 
             if (isEnrolled) {
-              enrolledStudents.push({ 
+              enrolledStudents.push({
                 ...student,
-                isChecked: false, // Add default isChecked property
+                isChecked: false, // track checkbox or attendance marking
               });
             }
           } catch (error) {
@@ -104,12 +102,12 @@ export default {
     },
 
     async recordAttendance(index) {
-      const row = this.attendance[index];
+      const student = this.attendance[index];
       const payload = {
-        studentID: row.StudentID,
+        studentId: student.StudentID, // Corrected key to match backend
         courseId: this.$route.params.courseId,
         dateAttend: new Date().toISOString().split("T")[0],
-        status: "present", // Assuming "Present" is the status for checked attendance
+        status: "present",
       };
 
       try {
@@ -119,7 +117,9 @@ export default {
             Authorization: `Bearer ${token}`,
           },
         });
-        alert(response.data.message); // Show success message
+        alert(response.data.message);
+        // Optionally mark this student as checked in UI
+        this.attendance[index].isChecked = true;
       } catch (error) {
         console.error("Error recording attendance:", error);
         alert("ไม่สามารถบันทึกการเข้าเรียนได้");
@@ -132,18 +132,19 @@ export default {
     },
   },
   mounted() {
-    this.fetchEnrolledStudents(); // Fetch only enrolled students when mounted
+    this.fetchEnrolledStudents();
 
- 
+    // Format today’s date for display (DD/MM/YYYY)
     const today = new Date();
     this.todayStr = today.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    }); // Format: DD/MM/YYYY
+    });
   },
 };
 </script>
+
 
 
 
