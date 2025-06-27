@@ -111,59 +111,10 @@ export default {
       const userInfo = await axios.get("/user-info", { headers });
       this.studentId = userInfo.data.studentDetails.StudentID;
 
-<<<<<<< HEAD
-    const joinedCourseIds = JSON.parse(
-      localStorage.getItem("joinedCourses") || "[]"
-    );
-
-    const myCourses = allCourses.filter((c) =>
-      joinedCourseIds.includes(c.CourseID)
-    );
-
-    const withStatus = myCourses.map((c) => {
-      const start = new Date(`${c.CourseDate}T${c.StartTime}`);
-      const end = new Date(`${c.CourseDate}T${c.EndTime}`);
-      const isSameDay = (a, b) => a.toDateString() === b.toDateString();
-      const isToday = isSameDay(start, today);
-
-      let status = "";
-      if (isToday && today >= start && today <= end) status = "In Progress";
-      else if (isToday && today < start) status = "Upcoming";
-      else if (isToday && today > end) status = "Canceled";
-
-      return {
-        courseId: c.CourseID,
-        courseName: c.CourseName,
-        schedule: {
-          date: c.CourseDate,
-          startTime: c.StartTime,
-          endTime: c.EndTime,
-          dayOfWeek: start.toLocaleDateString("en-US", { weekday: "long" }),
-        },
-        status,
-        isToday,
-      };
-    });
-    this.reloadCourses();
-    this.allCourses = withStatus;
-    this.todayCourses = withStatus.filter((c) => c.isToday && c.status);
-    this.courseStore = useCourseStore();
-    this.courseStore.setCourses(this.todayCourses);
-  },
-  computed: {
-    courseStore() {
-      return useCourseStore();
-    },
-    storeCourses() {
-      return this.courseStore?.todayCourses || [];
-    },
-    
-=======
       await this.reloadCourses();
     } catch (err) {
       console.error("Error loading student courses:", err);
     }
->>>>>>> main
   },
   methods: {
     logout() {
