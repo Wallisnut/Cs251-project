@@ -29,21 +29,6 @@
               @click.stop
             >
               <button @click.stop="showJoinCodeallcourse(course)">Join Code</button>
-              <button 
-                v-if="course.status !== 'Canceled'" 
-                @click.stop="cancelClass(course)"
-              >
-                Cancel Class
-              </button>
-              
-              <button 
-                v-else 
-                disabled 
-                style="opacity: 0.6; cursor: not-allowed;"
-              >
-                Already Canceled
-              </button>
-
             </div>
 
             <div class="status">
@@ -439,7 +424,7 @@ export default {
       this.newCourse.schedules.splice(index, 1);
     },
     goToAttendance(courseId) {
-      this.$router.push({ name: "StudentAttd", params: { courseId } });
+      this.$router.push(`/lectattd/${courseId}`);
     },
 
   },

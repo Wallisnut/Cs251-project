@@ -48,40 +48,48 @@ export default {
   },
   methods: {
     async handleLogin() {
-      if (!this.username || !this.password || !this.role) {
-        alert("Please fill in all required fields.");
-        return;
+  if (!this.username || !this.password || !this.role) {
+    alert("Please fill in all required fields.");
+    return;
+  }
+
+  try {
+      const response = await axios.post('/login', {
+        username: this.username,
+        password: this.password,
+        role: this.role
+      });
+
+      const { message, token } = response.data;
+      alert(message || "Login successful");
+
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      const userRole = decoded.role;
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('username', this.username);
+      localStorage.setItem('role', userRole);
+
+      const userInfoRes = await axios.get('/user-info', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (userRole === 'student' && userInfoRes.data.studentDetails?.StudentID) {
+        localStorage.setItem('studentId', userInfoRes.data.studentDetails.StudentID);
       }
 
-      try {
-        const response = await axios.post('/login', {
-          username: this.username,
-          password: this.password,
-          role: this.role
-        });
-
-        const { message, token } = response.data;
-        alert(message || "Login successful");
-
-        const decoded = JSON.parse(atob(token.split('.')[1]));
-        const userRole = decoded.role;
-
-        localStorage.setItem('token', token);
-        localStorage.setItem('username', this.username);
-        localStorage.setItem('role', userRole);
-
-        if (userRole === 'admin') {
-          this.$router.push('/admin/home');
-        } else if (userRole === 'lecturer') {
-          this.$router.push('/lecturer/home');
-        } else {
-          this.$router.push('/home');
-        }
-
-      } catch (error) {
-        alert(error.response?.data?.message || "Login failed");
+      if (userRole === 'admin') {
+        this.$router.push('/admin/home');
+      } else if (userRole === 'lecturer') {
+        this.$router.push('/lecturer/home');
+      } else {
+        this.$router.push('/home');
       }
+
+    } catch (error) {
+      alert(error.response?.data?.message || "Login failed");
     }
+  }
   }
 };
 </script>

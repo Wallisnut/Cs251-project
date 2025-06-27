@@ -46,7 +46,7 @@
                       type="file"
                       class="file-input"
                       @change="handleFileUpload(index, $event)"
-                      accept=".pdf"
+                      accept=".pdf, .png, .jpg, .jpeg"
                     />
                   </div>
                   <div v-else class="d-flex flex-column align-items-center">
@@ -78,6 +78,16 @@
         </table>
       </div>
     </div>
+    <div v-if="showPopup" class="modal-backdrop">
+  <div class="modal-box">
+    <h5>ยืนยันการเข้าร่วมคลาส</h5>
+    <p>คุณแน่ใจหรือไม่ว่าต้องการเช็คชื่อในวันนี้?</p>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button class="btn btn-secondary" @click="showPopup = false">ยกเลิก</button>
+      <button class="btn btn-success" @click="confirmAttendance">ยืนยัน</button>
+    </div>
+  </div>
+</div>
   </div>
 </template>
 
@@ -85,80 +95,81 @@
 import axios from "axios";
 
 export default {
-  mounted() {
-    this.fetchUserInfo();
-    this.fetchCourseData();
-    this.fetchAttendanceHistory();
-  },
   data() {
     return {
       courseId: this.$route.params.courseId,
       studentId: null,
-      attendance: [], // Holds attendance data
-      attendanceHistory: [],
-      selectedFile: null,
-      checkedDate: null,
+      attendance: [], // Each item: { date, startTime, endTime, canCheckIn, status, selectedFile, approvalStatus }
+      attendanceHistory: [], // fetched attendance records
       course: {
         schedule: {},
         lecturers: [],
       },
+      showPopup: false,
+      pendingAttendanceIndex: null,
     };
   },
+  mounted() {
+    this.fetchUserInfo();
+    this.fetchCourseData();
+  },
   methods: {
-    fetchUserInfo() {
-      axios
-        .get("/user-info", {
-          headers: {
-            "user-token": localStorage.getItem("token"),
-          },
-        })
-        .then((response) => {
-          this.studentId = response.data.adminDetails.AdminID;
-        })
-        .catch((error) => {
-          console.error("Error fetching user info:", error);
+    async fetchUserInfo() {
+      try {
+        const response = await axios.get("/user-info", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
+        this.studentId = response.data.studentDetails.StudentID;
+        await this.fetchAttendanceHistory();
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
     },
 
     recordAttendance(index) {
-      const courseId = this.courseId; // Get the courseId from the current route
+      // Called when user clicks "Record Attendance" button on a specific date row
+      this.pendingAttendanceIndex = index;
+      this.showPopup = true;
+    },
 
-      axios
-        .post(
-          `/attendance-approval/${courseId}`,
-          {},
-          {
-            headers: {
-              "user-token": localStorage.getItem("token"), // Include the token for authentication
-            },
-          }
-        )
-        .then((response) => {
-          // Handle the response
-          const approvalResults = response.data.results;
-          console.log("Approval Results:", approvalResults);
+    async confirmAttendance() {
+      // Called when user confirms attendance in the popup
+      const index = this.pendingAttendanceIndex;
+      if (index === null) return;
 
-          // Update the specific row in the attendance array
-          const result = approvalResults.find(
-            (res) => res.date === this.attendance[index].date
-          );
-          if (result) {
-            this.attendance[index].approvalStatus = result.approvalStatus;
-          }
+      try {
+        const attendanceRecord = {
+          studentId: this.studentId,
+          courseId: this.courseId,
+          dateAttend: this.attendance[index].date,
+          status: "present", // or you can make this dynamic if you want
+        };
 
-          // Optionally, display a success message
-          alert("Attendance approval processed successfully!");
-        })
-        .catch((error) => {
-          console.error("Error approving attendance:", error);
-          alert("Failed to process attendance approval.");
+        const token = localStorage.getItem("token");
+
+        const response = await axios.post("/record-attendance", attendanceRecord, {
+          headers: { Authorization: `Bearer ${token}` },
         });
+
+        // Assuming backend returns success message
+        alert(response.data.message || "เช็คชื่อสำเร็จ!");
+
+        // Update local attendance status for UI
+        this.attendance[index].status = attendanceRecord.status;
+        this.attendance[index].approvalStatus = "approved";
+
+      } catch (error) {
+        console.error("Error recording attendance:", error);
+        alert(error.response?.data?.message || "ไม่สามารถเช็คชื่อได้");
+      } finally {
+        this.showPopup = false;
+        this.pendingAttendanceIndex = null;
+      }
     },
 
     async fetchCourseData() {
       try {
-        const courseId = this.$route.params.courseId;
-        const response = await axios.get(`/course_and_lecturer/${courseId}`);
+        const response = await axios.get(`/course_and_lecturer/${this.courseId}`);
         this.course = response.data;
         this.generateAttendanceRows();
       } catch (error) {
@@ -167,32 +178,27 @@ export default {
     },
 
     isAttendanceAvailable(courseDate, startTime, endTime) {
-      const currentDate = new Date();
-      const courseDateTimeStart = new Date(`${courseDate}T${startTime}:00`);
-      const courseDateTimeEnd = new Date(`${courseDate}T${endTime}:00`);
-
-      // Check if current time is within course start and end time
-      return (
-        currentDate >= courseDateTimeStart &&
-        currentDate <= courseDateTimeEnd &&
-        currentDate.getDate() === courseDateTimeStart.getDate()
-      );
+      const now = new Date();
+      const start = new Date(`${courseDate}T${startTime}:00`);
+      const end = new Date(`${courseDate}T${endTime}:00`);
+      return now >= start && now <= end && now.toISOString().slice(0, 10) === courseDate;
     },
 
     async fetchAttendanceHistory() {
       try {
         const res = await axios.get(`/attendance-history/${this.studentId}`, {
-          headers: {
-            "user-token": localStorage.getItem("token"),
-          },
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        this.attendanceHistory = res.data.attendance;
+        this.attendanceHistory = res.data.attendance || [];
+        this.generateAttendanceRows();
       } catch (err) {
         console.error("Failed to fetch attendance history:", err);
       }
     },
 
     generateAttendanceRows() {
+      if (!this.course.schedule.date) return;
+
       const startDate = new Date(this.course.schedule.date);
       const today = new Date();
       const rows = [];
@@ -204,17 +210,21 @@ export default {
 
         const matchedHistory = this.attendanceHistory.find(
           (record) =>
-            record.courseId === this.courseId && record.date === dateStr
+            record.CourseID === this.courseId && record.Date_Attend === dateStr
         );
 
         rows.push({
           date: dateStr,
+          startTime: this.course.schedule.startTime,
+          endTime: this.course.schedule.endTime,
           canCheckIn: this.isAttendanceAvailable(
             dateStr,
             this.course.schedule.startTime,
             this.course.schedule.endTime
           ),
-          teacher: matchedHistory ? matchedHistory.status : "unchecked",
+          status: matchedHistory ? matchedHistory.Status : "unchecked",
+          approvalStatus: matchedHistory ? matchedHistory.recordedStatus || null : null,
+          selectedFile: null,
         });
 
         loopDate.setDate(loopDate.getDate() + 7);
@@ -224,12 +234,14 @@ export default {
     },
 
     handleFileUpload(index, event) {
-      const file = event.target.files[0]; // Get the selected file
-      if (file && file.type === "application/pdf") {
-        this.attendance[index].selectedFile = file; // Store file at the specific row index
+      const file = event.target.files[0];
+      const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
+
+      if (file && allowedTypes.includes(file.type)) {
+        this.attendance[index].selectedFile = file;
         console.log("File selected:", file.name);
       } else {
-        alert("Please upload a valid PDF file");
+        alert("กรุณาอัปโหลดไฟล์ PDF หรือ รูปภาพ (.png, .jpg)");
         this.attendance[index].selectedFile = null;
       }
     },
@@ -246,7 +258,8 @@ export default {
       const formData = new FormData();
       formData.append("studentId", this.studentId);
       formData.append("courseId", this.courseId);
-      formData.append("reason", file);
+      formData.append("reason", "ขอลาด้วยเหตุผล...");
+      formData.append("file", file);
 
       axios
         .post("/submit-leave-request", formData)
@@ -260,7 +273,6 @@ export default {
     },
 
     changeFile(index) {
-      // Clear the previously selected file
       this.attendance[index].selectedFile = null;
     },
 
@@ -272,6 +284,10 @@ export default {
   },
 };
 </script>
+
+
+
+
 
 <style scoped>
 .sidebar {
@@ -313,5 +329,26 @@ export default {
 
 .container {
   display: block;
+}
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  text-align: center;
 }
 </style>

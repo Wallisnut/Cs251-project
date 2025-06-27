@@ -35,7 +35,6 @@
                   type="radio"
                   v-model="attendance[index].isChecked"
                   :value="true"
-                  :disabled="!isAttendanceAvailable()"
                   @change="recordAttendance(index)"
                 />
               </td>
@@ -47,83 +46,110 @@
   </div>
 </template>
 
+
 <script>
 import axios from "axios";
 
 export default {
   data() {
     return {
-      attendance: [], // Holds attendance data
-      todayStr: "", // Holds today's date
+      attendance: [], // Holds enrolled students with attendance info
+      todayStr: "", // For display, formatted date (DD/MM/YYYY)
+      courseId: this.$route.params.courseId, // Save courseId for reuse
     };
   },
   methods: {
-    async fetchStudents() {
+    async fetchEnrolledStudents() {
+  try {
+    const token = localStorage.getItem("token");
+
+    // 1. ดึงนักเรียนทั้งหมด
+    const response = await axios.get("/students", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const allStudents = response.data.students;
+
+    // 2. สำหรับแต่ละคน ยิง GET /attendance-history/:studentId
+    const enrolled = [];
+
+    for (const student of allStudents) {
       try {
-        const token = localStorage.getItem("token"); // Admin or lecturer token
-        const response = await axios.get("/students", {
-          headers: {
-            "user-token": token,
-          },
+        const history = await axios.get(`/attendance-history/${student.StudentID}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        this.attendance = response.data.students.map((student) => ({
-          ...student,
-          isChecked: false, // Add default isChecked property
-        }));
-      } catch (error) {
-        console.error("Error fetching students:", error);
-        alert("ไม่สามารถดึงข้อมูลนักเรียนได้");
+
+        // ถ้ามีประวัติการเข้าเรียนในคอร์สนี้ -> ถือว่าเคยลงทะเบียน
+        const hasThisCourse = history.data.some(
+          (record) => record.CourseID === this.courseId
+        );
+
+        if (hasThisCourse) {
+          enrolled.push({ ...student, isChecked: false });
+        }
+      } catch (e) {
+        console.error(`Error loading attendance for ${student.StudentID}`);
       }
-    },
+    }
+
+    this.attendance = enrolled;
+  } catch (error) {
+    console.error("Error fetching students:", error);
+  }
+},
+
     async recordAttendance(index) {
-      const row = this.attendance[index];
-      const payload = {
-        StudentID: row.StudentID,
-        CourseID: this.$route.params.courseId,
-        Date_Attend: new Date().toISOString().split("T")[0], // Current date in YYYY-MM-DD format
-        Status: "Present", // Assuming "Present" is the status for checked attendance
-      };
+  const student = this.attendance[index];
 
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.post("/record-attendance", payload, {
-          headers: {
-            "user-token": token,
-          },
-        });
-        alert(response.data.message); // Show success message
-      } catch (error) {
-        console.error("Error recording attendance:", error);
-        alert("ไม่สามารถบันทึกการเข้าเรียนได้");
+  const payload = {
+    studentId: student.StudentID,
+    dateAttend: new Date().toISOString().split("T")[0],
+    status: "present",
+  };
+
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `/attendance-approval/${this.courseId}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    },
-    isAttendanceAvailable(date, startTime, endTime) {
-      // Use the parameters to determine if attendance is available
-      const currentDate = new Date();
-      const courseStart = new Date(`${date}T${startTime}`);
-      const courseEnd = new Date(`${date}T${endTime}`);
+    );
 
-      // Check if the current time is within the course's start and end time
-      return currentDate >= courseStart && currentDate <= courseEnd;
-    },
+    alert(response.data.message || "อนุมัติการเข้าเรียนสำเร็จ");
+
+    // Update UI
+    this.attendance[index].isChecked = true;
+  } catch (error) {
+    console.error("Error approving attendance:", error);
+    alert("ไม่สามารถอนุมัติการเข้าเรียนได้");
+  }
+},
+
     logout() {
       localStorage.removeItem("token");
       this.$router.push("/login");
     },
   },
   mounted() {
-    this.fetchStudents(); // Fetch students when the component is mounted
+    this.fetchEnrolledStudents();
 
-    // Set today's date
+    // Format today’s date for display (DD/MM/YYYY)
     const today = new Date();
     this.todayStr = today.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    }); // Format: DD/MM/YYYY
+    });
   },
 };
 </script>
+
+
+
 
 
 <style scoped>

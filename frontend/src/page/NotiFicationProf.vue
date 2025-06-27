@@ -3,18 +3,10 @@
     <!-- Sidebar -->
     <div class="sidebar d-flex flex-column">
       <h2 class="fw-bold">Menu</h2>
-      <router-link to="/lecturer/home" class="menu-item" active-class="active">
-        <img class="menu-icon" :src="homeIcon" alt="Home" /> Home
-      </router-link>
-      <router-link to="/notificationProf" class="noti-item" active-class="active">
-        <img class="menu-icon" :src="notiIcon" alt="Notification" /> Notification
-      </router-link>
-      <router-link to="/course_summary" class="menu-item" active-class="active">
-        <img class="menu-icon" :src="summaryIcon" alt="Summary" /> Summary
-      </router-link>
-      <div class="menu-item mt-auto" @click="logout">
-        <img class="menu-icon" :src="logoutIcon" alt="Logout" /> Log Out
-      </div>
+      <router-link to="/lecturer/home" class="menu-item">🏠 Home</router-link>
+      <router-link to="/notificationProf" class="menu-item active">🔔 Notification</router-link>
+      <router-link to="/course_summary" class="menu-item">📊 Summary</router-link>
+      <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
 
     <!-- Content -->
@@ -44,11 +36,11 @@
 
 <script>
 import axios from "axios";
-import userIcon from "@/assets/user-icon.png";
-import homeIcon from "@/assets/home-icon.png";
-import notiIcon from "@/assets/noti-icon.png";
-import summaryIcon from "@/assets/summary-icon.png";
-import logoutIcon from "@/assets/logout-icon.png";
+import userIcon from "../assets/user-icon.png";
+import homeIcon from "../assets/home-icon.png";
+import notiIcon from "../assets/noti-icon.png";
+import summaryIcon from "../assets/summary-icon.png";
+import logoutIcon from "../assets/logout-icon.png";
 
 export default {
   name: "NotiFicationProf",
@@ -134,30 +126,32 @@ export default {
   height: 100vh;
   padding: 20px;
 }
-.menu-item,
-.noti-item {
+.menu-item {
   padding: 12px;
   font-weight: bold;
   cursor: pointer;
   text-decoration: none;
   color: black;
-  display: flex;
-  align-items: center;
+  display: block;
   background: transparent;
   transition: all 0.2s ease-in-out;
   margin-bottom: 5px;
 }
-.menu-icon {
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
-}
-.active,
+
 .menu-item:hover,
-.noti-item:hover {
-  background: #9b9a9a;
+.active {
+  background: #ffc107;
   border-radius: 12px;
 }
+
+.active {
+  background: #ffc107;
+  border-radius: 10px;
+}
+.menu-item:last-child {
+  margin-bottom: 0;
+}
+
 .content {
   padding: 20px;
   background: #f5f5f5;

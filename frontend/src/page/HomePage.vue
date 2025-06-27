@@ -7,7 +7,9 @@
       <router-link to="/notification" class="menu-item"
         >🔔 Notification</router-link
       >
-      <router-link to="/personal_summary" class="menu-item">📊 Summary</router-link>
+      <router-link to="/personal_summary" class="menu-item"
+        >📊 Summary</router-link
+      >
       <div class="menu-item mt-auto" @click="logout">⬅️ Log Out</div>
     </div>
 
@@ -105,9 +107,11 @@ export default {
     const formatted = this.formatDateLocal(today);
     console.log("Today is:", formatted);
 
-    const allRes = await axios.get("/all-courses", { headers });
-    const allCourses = allRes.data.courses;
+    try {
+      const userInfo = await axios.get("/user-info", { headers });
+      this.studentId = userInfo.data.studentDetails.StudentID;
 
+<<<<<<< HEAD
     const joinedCourseIds = JSON.parse(
       localStorage.getItem("joinedCourses") || "[]"
     );
@@ -154,6 +158,12 @@ export default {
       return this.courseStore?.todayCourses || [];
     },
     
+=======
+      await this.reloadCourses();
+    } catch (err) {
+      console.error("Error loading student courses:", err);
+    }
+>>>>>>> main
   },
   methods: {
     logout() {
@@ -209,21 +219,17 @@ export default {
             studentId: this.studentId,
             joinCode: this.joinCodeInput,
           },
-          { headers }
+          { headers },
         );
 
-        const joined = JSON.parse(
-          localStorage.getItem("joinedCourses") || "[]"
-        );
+        const joinedKey = `joinedCourses_${this.studentId}`;
+        const joined = JSON.parse(localStorage.getItem(joinedKey) || "[]");
         joined.push(response.data.courseId);
-        localStorage.setItem(
-          "joinedCourses",
-          JSON.stringify([...new Set(joined)])
-        );
+        localStorage.setItem(joinedKey, JSON.stringify([...new Set(joined)]));
 
         alert("Joined successfully!");
         this.showModal = false;
-        this.reloadCourses(); // รีโหลดวิชาใหม่
+        this.reloadCourses();
       } catch (err) {
         alert("Invalid join code or already joined.");
         console.error("Join failed:", err);
@@ -238,11 +244,9 @@ export default {
         const userInfo = await axios.get("/user-info", { headers });
         this.studentId = userInfo.data.studentDetails.StudentID;
 
-        const enrolledRes = await axios.get(`/join-course/${this.studentId}`, {
-          headers,
-        });
-        const enrolled = enrolledRes.data;
-        this.enrolledCourseIds = enrolled.map((c) => c.CourseID);
+        const joinedKey = `joinedCourses_${this.studentId}`;
+        const joined = JSON.parse(localStorage.getItem(joinedKey) || "[]");
+        this.enrolledCourseIds = joined;
 
         const allRes = await axios.get("/all-courses", { headers });
         const rawCourses = allRes.data.courses;
@@ -251,7 +255,7 @@ export default {
         const todayStr = this.formatDateLocal(now);
 
         const enrolledCourses = rawCourses.filter((c) =>
-          this.enrolledCourseIds.includes(c.CourseID)
+          this.enrolledCourseIds.includes(c.CourseID),
         );
 
         const withStatus = enrolledCourses.map((c) => {
